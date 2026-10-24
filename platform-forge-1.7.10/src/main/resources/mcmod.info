@@ -1,0 +1,11 @@
+[
+  {
+    "modid": "mira",
+    "name": "Mira",
+    "description": "Collaborative tasks and workflows. Foundation bootstrap only.",
+    "version": "${version}",
+    "mcversion": "1.7.10",
+    "authorList": [],
+    "dependencies": []
+  }
+]

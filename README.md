@@ -42,7 +42,7 @@ Resource-pack images stay local. Full controls and editing behavior are in the
 
 ## Install
 
-1. Download `mira-0.1.0.jar` from [Releases](https://github.com/sorivma/mira/releases).
+1. Download `mira-0.1.1.jar` from [Releases](https://github.com/sorivma/mira/releases).
 2. Place it in `mods/` on the **client and server** running Minecraft 1.7.10
    with Forge 10.13.4.1614.
 3. Enter the world and press **J**. Create a workspace, then invite players under
@@ -61,9 +61,9 @@ see the [verification record](docs/verification.md).
 
 | Artifact | Requires | Adds |
 | --- | --- | --- |
-| `mira-0.1.0.jar` | Forge | Complete collaborative workspace |
-| `mira-agent-tools-1.7.10-0.1.0.jar` | Mira + [Minecraft Agent Tools](https://github.com/sorivma/minecraft-agent-tools) | Eleven `mira_*` tools for scoped task reads and permission-checked writes |
-| `mira-harness-1.7.10-0.1.0.jar` | Mira + [Minecraft Harness](https://github.com/sorivma/minecraft-harness) | Live task cards with an **Open Mira** action |
+| `mira-0.1.1.jar` | Forge | Complete collaborative workspace |
+| `mira-agent-tools-1.7.10-0.1.1.jar` | Mira + [Minecraft Agent Tools](https://github.com/sorivma/minecraft-agent-tools) | Eleven `mira_*` tools for scoped task reads and permission-checked writes |
+| `mira-harness-1.7.10-0.1.1.jar` | Mira + [Minecraft Harness](https://github.com/sorivma/minecraft-harness) | Live task cards with an **Open Mira** action |
 
 The addons are optional client integrations. The MCP addon is copied to both
 `mods/` and `config/minecraftagenttools/plugins/`. Harness cards work without

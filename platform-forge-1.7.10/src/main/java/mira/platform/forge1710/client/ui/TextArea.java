@@ -22,7 +22,7 @@ public final class TextArea extends TextInput {
     private int caret, anchor, firstLine, ticks;
     private List<Line> lines = new ArrayList<>();
     public TextArea(FontRenderer font, int limit, int rows, String placeholder, Supplier<String> read, Consumer<String> write) {
-        this(font, limit, rows, placeholder, read, write, false);
+        this(font, limit, rows, placeholder, read, write, hasSeparateTextEvents());
     }
     TextArea(FontRenderer font, int limit, int rows, String placeholder, Supplier<String> read, Consumer<String> write, boolean separateTextEvents) {
         super(font, limit, placeholder, read, write, separateTextEvents);
@@ -87,8 +87,9 @@ public final class TextArea extends TextInput {
         type(character, key, GuiScreen.isCtrlKeyDown(), GuiScreen.isShiftKeyDown());
     }
     void type(char character, int key, boolean control, boolean shift) {
+        if (!control && ChatAllowedCharacters.isAllowedCharacter(character) && textCharacter(character, key) == '\0') return;
         layout(Math.max(1, field.width));
-        if (!control && character == '/' && slash != null && value.trim().isEmpty()) { slash.run(); return; }
+        character = textCharacter(character, key);
         if (control && key == Keyboard.KEY_A) { anchor = 0; caret = value.length(); return; }
         if (control && (key == Keyboard.KEY_C || key == Keyboard.KEY_X)) {
             GuiScreen.setClipboardString(value.substring(Math.min(caret, anchor), Math.max(caret, anchor)));
@@ -112,7 +113,19 @@ public final class TextArea extends TextInput {
             else replace("\n");
             return;
         }
-        else if (!control && ChatAllowedCharacters.isAllowedCharacter(character)) { replace(String.valueOf(character)); return; }
+        else if (!control && ChatAllowedCharacters.isAllowedCharacter(character)) {
+            // Use the native field as a text-commit adapter. lwjgl3ify's GuiTextField
+            // mixin drains its IME buffer here; bypassing it leaves stale text for
+            // the next focused field and loses multi-character commits.
+            field.setText("");
+            field.textboxKeyTyped(character, key);
+            String committed = field.getText();
+            field.setText("");
+            if (committed.isEmpty()) return;
+            if (committed.equals("/") && slash != null && value.trim().isEmpty()) slash.run();
+            else replace(committed);
+            return;
+        }
         if (!shift) anchor = caret;
     }
     private void replace(String text) {

@@ -123,7 +123,7 @@ requires separate pack smoke tests on Java 21.
 The platform has a one-way Gradle project dependency on core. Its `jar` task
 explicitly embeds core compiled classes/resources before RFG's `reobfJar`
 transformation. The installable artifact is
-`platform-forge-1.7.10/build/libs/mira-0.1.0.jar`. The `-dev.jar` is for
+`platform-forge-1.7.10/build/libs/mira-0.1.1.jar`. The `-dev.jar` is for
 development. Only the final jar goes in a pack's `mods/`; no separate core jar,
 nested loader, or shaded game dependencies are required.
 

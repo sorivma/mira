@@ -4,6 +4,18 @@ Changes are grouped by released version. Versioning follows [SemVer](VERSIONING.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-25
+
+### Fixed
+
+- Prevent duplicate input in single-line and multiline fields with lwjgl3ify 3.x
+  (including GTNH 2.9.0-RC-2): physical key events retain navigation and shortcuts,
+  while separate SDL committed-text events insert printable characters once.
+- Route multiline text commits through the native text field so lwjgl3ify's IME
+  buffer is consumed and cannot leak into another focused field.
+- Preserve intentional repeated letters, Unicode text, legacy LWJGL input, and
+  slash-menu actions; add event replay regressions for both real control types.
+
 ## [0.1.0] - 2026-10-25
 
 ### Added

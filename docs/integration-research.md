@@ -1,9 +1,19 @@
 # Mira integration research
 
-Source inspection of the neighboring `minecraft-agent-tools` and
-`minecraft-harness` checkouts, 2026-10-25. Paths below refer to those local
-checkouts, not published releases. No builds, compilation, tests, linting,
-Minecraft launches, or runtime probes were performed.
+> **Historical design record — 2026-10-25.** This document preserves the
+> source findings and implementation recommendations made before release
+> preparation, including the original `0.1.0-SNAPSHOT` artifact names and
+> unexecuted acceptance steps. For current installation/build commands use
+> [integrations.md](integrations.md); for completed checks and remaining runtime
+> acceptance use [verification.md](verification.md).
+
+The original inspection used Agent Tools commit
+[`a0e2af0`](https://github.com/sorivma/minecraft-agent-tools/commit/a0e2af04aaa8b763fee47cd731e84da60a01e536)
+and Harness commit
+[`80cd73a`](https://github.com/sorivma/minecraft-harness/commit/80cd73aa1c25060e12231d766acb65c3b9b97dec).
+Cross-repository source links below are pinned to those snapshots, not current
+releases. During that original inspection, no builds, compilation, tests,
+linting, Minecraft launches, or runtime probes were performed.
 
 ## Recommended module boundary
 
@@ -33,7 +43,7 @@ installation mechanism would be required; do not silently assume the host scans
 ## Agent Tools extension seam
 
 The Java 8 SPI is
-[`ToolProvider`](../../minecraft-agent-tools/core/mcp-api/src/main/java/dev/minecraftagenttools/api/ToolProvider.java):
+[`ToolProvider`](https://github.com/sorivma/minecraft-agent-tools/blob/a0e2af04aaa8b763fee47cd731e84da60a01e536/core/mcp-api/src/main/java/dev/minecraftagenttools/api/ToolProvider.java):
 
 ```java
 String id();
@@ -49,22 +59,22 @@ JSON-compatible maps, lists, and scalar values. Calls run off the game thread.
 The service descriptor is
 `META-INF/services/dev.minecraftagenttools.api.ToolProvider`, containing the
 provider's fully qualified class name. The existing
-[BetterQuesting provider](../../minecraft-agent-tools/tools/betterquesting-tools/src/main/java/dev/minecraftagenttools/betterquesting/provider/BetterQuestingToolProvider.java)
+[BetterQuesting provider](https://github.com/sorivma/minecraft-agent-tools/blob/a0e2af04aaa8b763fee47cd731e84da60a01e536/tools/betterquesting-tools/src/main/java/dev/minecraftagenttools/betterquesting/provider/BetterQuestingToolProvider.java)
 delegates validation to its portable contract and calls
 `context.callBridge("betterquesting", tool, arguments)`; Mira can use the named
 connection `mira`.
 
-[`PluginLoader`](../../minecraft-agent-tools/core/mcp-runtime/src/main/java/dev/minecraftagenttools/mcp/plugins/PluginLoader.java)
+[`PluginLoader`](https://github.com/sorivma/minecraft-agent-tools/blob/a0e2af04aaa8b763fee47cd731e84da60a01e536/core/mcp-runtime/src/main/java/dev/minecraftagenttools/mcp/plugins/PluginLoader.java)
 loads JARs from one startup directory and deliberately uses `findResources` for
 the service descriptor, excluding services on the parent classpath. Therefore a
 service descriptor inside a Forge mod in `mods/` is insufficient on its own.
 There is no live provider refresh. The
-[registry](../../minecraft-agent-tools/core/mcp-runtime/src/main/java/dev/minecraftagenttools/mcp/plugins/ToolRegistry.java)
+[registry](https://github.com/sorivma/minecraft-agent-tools/blob/a0e2af04aaa8b763fee47cd731e84da60a01e536/core/mcp-runtime/src/main/java/dev/minecraftagenttools/mcp/plugins/ToolRegistry.java)
 rejects duplicate provider IDs and tool names. Do not leave multiple versioned
 copies of a Mira provider in the plugin directory.
 
 The embedded
-[`McpHostMod`](../../minecraft-agent-tools/adapters/forge-mcp-1.7.10/src/main/java/dev/minecraftagenttools/forge/mcp/McpHostMod.java)
+[`McpHostMod`](https://github.com/sorivma/minecraft-agent-tools/blob/a0e2af04aaa8b763fee47cd731e84da60a01e536/adapters/forge-mcp-1.7.10/src/main/java/dev/minecraftagenttools/forge/mcp/McpHostMod.java)
 has mod ID `minecraftagenttoolsmcp`; it loads providers in post-init. Its default
 plugin directory is `config/minecraftagenttools/plugins/`, configurable through
 the host's `http.plugins` property. It owns the authenticated MCP HTTP endpoint
@@ -79,11 +89,11 @@ For `context.callBridge("mira", ...)`, the corresponding file must therefore be
 `config/minecraftagenttoolsmira.cfg`. An external launcher uses
 `MAT_MIRA_PORT` and `MAT_MIRA_TOKEN` instead. Tokens need at least 32 characters,
 and the configured port must be 1024–65535. These constraints come from
-[host configuration discovery](../../minecraft-agent-tools/adapters/forge-mcp-1.7.10/src/main/java/dev/minecraftagenttools/forge/mcp/McpHostMod.java)
+[host configuration discovery](https://github.com/sorivma/minecraft-agent-tools/blob/a0e2af04aaa8b763fee47cd731e84da60a01e536/adapters/forge-mcp-1.7.10/src/main/java/dev/minecraftagenttools/forge/mcp/McpHostMod.java)
 and
-[`BridgeConnections`](../../minecraft-agent-tools/core/mcp-runtime/src/main/java/dev/minecraftagenttools/mcp/bridge/BridgeConnections.java).
+[`BridgeConnections`](https://github.com/sorivma/minecraft-agent-tools/blob/a0e2af04aaa8b763fee47cd731e84da60a01e536/core/mcp-runtime/src/main/java/dev/minecraftagenttools/mcp/bridge/BridgeConnections.java).
 
-[`GameBridge`](../../minecraft-agent-tools/core/game-bridge/src/main/java/dev/minecraftagenttools/gamebridge/GameBridge.java)
+[`GameBridge`](https://github.com/sorivma/minecraft-agent-tools/blob/a0e2af04aaa8b763fee47cd731e84da60a01e536/core/game-bridge/src/main/java/dev/minecraftagenttools/gamebridge/GameBridge.java)
 is a reusable loopback transport with this constructor:
 
 ```java
@@ -99,7 +109,7 @@ most 32 jobs, the bridge processes at most four jobs within a five-millisecond
 tick budget, and requests expire after five seconds. Readers return the data
 object; the bridge wraps it in `{ "ok": true, "data": ... }`, or returns an
 error envelope on failure. The
-[frame contract](../../minecraft-agent-tools/core/bridge-protocol/src/main/java/dev/minecraftagenttools/protocol/transport/Frames.java)
+[frame contract](https://github.com/sorivma/minecraft-agent-tools/blob/a0e2af04aaa8b763fee47cd731e84da60a01e536/core/bridge-protocol/src/main/java/dev/minecraftagenttools/protocol/transport/Frames.java)
 uses newline-delimited JSON with a 4 Mi-character limit. Page and bound Mira
 responses well below that limit.
 
@@ -108,14 +118,14 @@ embed `GameBridge`**. Existing adapters embed the game-bridge implementation
 and protocol themselves; its Gson dependency is compile-only version 2.2.4,
 supplied by the game. If Mira reuses this implementation, account for its
 runtime classes explicitly and avoid bundling unrelated host/Harness classes.
-See the [host build](../../minecraft-agent-tools/adapters/forge-mcp-1.7.10/build.gradle.kts),
-[game-bridge build](../../minecraft-agent-tools/core/game-bridge/build.gradle.kts),
-and [BetterQuesting adapter build](../../minecraft-agent-tools/adapters/forge-betterquesting-1.7.10/build.gradle.kts).
+See the [host build](https://github.com/sorivma/minecraft-agent-tools/blob/a0e2af04aaa8b763fee47cd731e84da60a01e536/adapters/forge-mcp-1.7.10/build.gradle.kts),
+[game-bridge build](https://github.com/sorivma/minecraft-agent-tools/blob/a0e2af04aaa8b763fee47cd731e84da60a01e536/core/game-bridge/build.gradle.kts),
+and [BetterQuesting adapter build](https://github.com/sorivma/minecraft-agent-tools/blob/a0e2af04aaa8b763fee47cd731e84da60a01e536/adapters/forge-betterquesting-1.7.10/build.gradle.kts).
 
 ### Session and authority
 
 The existing
-[BetterQuesting reader](../../minecraft-agent-tools/adapters/forge-betterquesting-1.7.10/src/main/java/dev/minecraftagenttools/forge/betterquesting/BqReader.java)
+[BetterQuesting reader](https://github.com/sorivma/minecraft-agent-tools/blob/a0e2af04aaa8b763fee47cd731e84da60a01e536/adapters/forge-betterquesting-1.7.10/src/main/java/dev/minecraftagenttools/forge/betterquesting/BqReader.java)
 creates a fresh session identity when world, dimension, player object, or player
 identity changes. It rechecks scope when queued reads execute. This is a useful
 precedent for Mira: begin with a status tool that returns readiness and scope;
@@ -145,7 +155,7 @@ existing synchronous bridge directly.
 ## Harness widget seam
 
 The public client entry point is
-[`HarnessWidgets`](../../minecraft-harness/forge-1.7.10/src/main/java/dev/minecraftharness/forge/HarnessWidgets.java):
+[`HarnessWidgets`](https://github.com/sorivma/minecraft-harness/blob/80cd73aa1c25060e12231d766acb65c3b9b97dec/forge-1.7.10/src/main/java/dev/minecraftharness/forge/HarnessWidgets.java):
 
 ```java
 HarnessWidgets.register(String id, String instructions,
@@ -158,13 +168,13 @@ instructions. Use a namespaced, versioned ID such as `mira:tasks-v1`; duplicate
 and unnamespaced IDs are rejected. Compile against the Harness dev JAR with
 `compileOnly` and declare `required-after:minecraftharness`. Do not embed Harness
 classes. These requirements and lifecycle details are documented in the
-[Harness widget API](../../minecraft-harness/docs/widget-api.md).
+[Harness widget API](https://github.com/sorivma/minecraft-harness/blob/80cd73aa1c25060e12231d766acb65c3b9b97dec/docs/widget-api.md).
 
-[`Widget`](../../minecraft-harness/chat-ui/src/main/java/dev/minecraftharness/chat/widget/Widget.java)
+[`Widget`](https://github.com/sorivma/minecraft-harness/blob/80cd73aa1c25060e12231d766acb65c3b9b97dec/chat-ui/src/main/java/dev/minecraftharness/chat/widget/Widget.java)
 provides `title()`, `plainText()`, `height(int width)`, and
 `render(WidgetCanvas)`. Optional methods supply metric-aware height and declare
 whether rendering includes the fallback text.
-[`WidgetCanvas`](../../minecraft-harness/chat-ui/src/main/java/dev/minecraftharness/chat/widget/WidgetCanvas.java)
+[`WidgetCanvas`](https://github.com/sorivma/minecraft-harness/blob/80cd73aa1c25060e12231d766acb65c3b9b97dec/chat-ui/src/main/java/dev/minecraftharness/chat/widget/WidgetCanvas.java)
 provides text, rectangles, item icons, clipped native drawing, and explicit
 `button(..., Runnable callback)` actions. The host owns clipping and hit
 registration. A callback executes only after user activation on the client/UI
@@ -178,22 +188,22 @@ The widget must return immutable, useful fallback text because the host
 captures it once. Titles are limited to 256 characters; fallback text to 32,768;
 registration instructions to 8,192; visual height to 4096 pixels; at most 16
 successful widgets are parsed per message. See the
-[widget API contract](../../minecraft-harness/docs/widget-api.md).
+[widget API contract](https://github.com/sorivma/minecraft-harness/blob/80cd73aa1c25060e12231d766acb65c3b9b97dec/docs/widget-api.md).
 
 For a Mira task card, a scope plus workspace/task identifiers is preferable to
 agent-authored progress or workflow data. Resolve the visible task from Mira's
 synchronized snapshot. Recheck the current session, task existence, and access
 before every live read and explicit Open action. The adjacent
-[quest widget](../../minecraft-agent-tools/integrations/harness/betterquesting/src/main/java/dev/minecraftagenttools/harness/betterquesting/QuestWidget.java)
+[quest widget](https://github.com/sorivma/minecraft-agent-tools/blob/a0e2af04aaa8b763fee47cd731e84da60a01e536/integrations/harness/betterquesting/src/main/java/dev/minecraftagenttools/harness/betterquesting/QuestWidget.java)
 and its
-[client facade](../../minecraft-agent-tools/adapters/forge-betterquesting-1.7.10/src/main/java/dev/minecraftagenttools/forge/betterquesting/BqClient.java)
+[client facade](https://github.com/sorivma/minecraft-agent-tools/blob/a0e2af04aaa8b763fee47cd731e84da60a01e536/adapters/forge-betterquesting-1.7.10/src/main/java/dev/minecraftagenttools/forge/betterquesting/BqClient.java)
 demonstrate this pattern, including expiration of cards from earlier worlds.
 
 Harness already consumes the host's data-only MCP advertisements; the Mira
 widget module should not configure the agent backend or copy MCP credentials.
 The full lifecycle is in
-[Agent Tools discovery](../../minecraft-agent-tools/docs/mcp-discovery.md)
-and [Harness discovery](../../minecraft-harness/docs/mcp-discovery.md): discover
+[Agent Tools discovery](https://github.com/sorivma/minecraft-agent-tools/blob/a0e2af04aaa8b763fee47cd731e84da60a01e536/docs/mcp-discovery.md)
+and [Harness discovery](https://github.com/sorivma/minecraft-harness/blob/80cd73aa1c25060e12231d766acb65c3b9b97dec/docs/mcp-discovery.md): discover
 during init, advertise after successful endpoint startup in post-init, collect
 advertisements at load-complete.
 
@@ -204,14 +214,14 @@ advertisements at load-complete.
   mapping settings. Keep Mira's own platform/build conventions rather than
   including the neighboring builds wholesale. Sources:
   [Mira platform build](../platform-forge-1.7.10/build.gradle.kts),
-  [Agent Tools adapter build](../../minecraft-agent-tools/adapters/forge-mcp-1.7.10/build.gradle.kts),
-  [Harness platform build](../../minecraft-harness/forge-1.7.10/build.gradle.kts).
+  [Agent Tools adapter build](https://github.com/sorivma/minecraft-agent-tools/blob/a0e2af04aaa8b763fee47cd731e84da60a01e536/adapters/forge-mcp-1.7.10/build.gradle.kts),
+  [Harness platform build](https://github.com/sorivma/minecraft-harness/blob/80cd73aa1c25060e12231d766acb65c3b9b97dec/forge-1.7.10/build.gradle.kts).
 - Agent Tools already makes Harness integrations optional via an explicit
   `harnessApiJar` property. Without it the base build works and the integration
   reports that its JAR was not built. This is an appropriate model for optional
   Mira integration inputs, with clear commands and no hidden sibling builds.
-  Sources: [integration build](../../minecraft-agent-tools/integrations/harness/betterquesting/build.gradle.kts),
-  [integration guide](../../minecraft-agent-tools/integrations/harness/README.md).
+  Sources: [integration build](https://github.com/sorivma/minecraft-agent-tools/blob/a0e2af04aaa8b763fee47cd731e84da60a01e536/integrations/harness/betterquesting/build.gradle.kts),
+  [integration guide](https://github.com/sorivma/minecraft-agent-tools/blob/a0e2af04aaa8b763fee47cd731e84da60a01e536/integrations/harness/README.md).
 - Keep common Forge bootstraps free of eager Minecraft client/Harness widget
   references; load clients through sided proxies. Client optional modules must
   not make the base Mira JAR require Harness or MCP. Source:
@@ -248,9 +258,9 @@ The source build configurations name these input artifacts:
 | Embedded MCP host, installable | `adapters/forge-mcp-1.7.10/build/libs/minecraft-agent-tools-mcp-forge-1.7.10-0.1.0-SNAPSHOT.jar` |
 | Harness development API | `forge-1.7.10/build/libs/minecraft-harness-forge-1.7.10-0.1.0-dev.jar` |
 
-These paths are derived from the [Agent Tools root version](../../minecraft-agent-tools/build.gradle.kts),
-its module builds linked above, and the [Harness root version](../../minecraft-harness/build.gradle.kts)
-and [platform build](../../minecraft-harness/forge-1.7.10/build.gradle.kts). Artifact
+These paths are derived from the [Agent Tools root version](https://github.com/sorivma/minecraft-agent-tools/blob/a0e2af04aaa8b763fee47cd731e84da60a01e536/build.gradle.kts),
+its module builds linked above, and the [Harness root version](https://github.com/sorivma/minecraft-harness/blob/80cd73aa1c25060e12231d766acb65c3b9b97dec/build.gradle.kts)
+and [platform build](https://github.com/sorivma/minecraft-harness/blob/80cd73aa1c25060e12231d766acb65c3b9b97dec/forge-1.7.10/build.gradle.kts). Artifact
 existence and contents have not been checked.
 
 Once implementation is present, the user should build the optional modules with

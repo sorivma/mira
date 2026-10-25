@@ -15,6 +15,7 @@ public class TextInputEventsTest {
         FontRenderer font = mock(FontRenderer.class);
         when(font.getStringWidth(anyString())).thenAnswer(call -> ((String) call.getArgument(0)).length());
         when(font.trimStringToWidth(anyString(), anyInt())).thenAnswer(call -> call.getArgument(0));
+        when(font.trimStringToWidth(anyString(), anyInt(), anyBoolean())).thenAnswer(call -> call.getArgument(0));
         return font;
     }
 

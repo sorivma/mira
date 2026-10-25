@@ -5,18 +5,50 @@ platform-forge-1.7.10  --->  core  --->  JDK
 Forge / Minecraft             no game classpath
 ```
 
-`core` owns future task, workflow, and board rules and results under `mira.core`.
+`core` owns task-body rules and values under `mira.core.taskbody`, with future
+task, workflow, and board rules under `mira.core`.
 It is an ordinary Java library, compiled with `--release 8`. Its production
 compile and runtime classpaths are JDK-only. Build tooling and test dependencies
-are outside that restriction. No domain operations are implemented yet.
+are outside that restriction. The ordered `TaskBody` contains independently
+typed `TaskWidget` instances with detached copying and optional progress.
+Material matching and shared inventory allocation operate on portable values.
 
 `platform-forge-1.7.10` owns `mira.platform.forge1710`: Forge lifecycle,
 player lookup, tick scheduling, packets, world saves/NBT, game effects, and
 conversion between Minecraft objects and core values. The mod id is `mira`;
-the display name is **Mira**. Future client rendering and GUI code belong in
-`mira.platform.forge1710.client`, reached only through client-side wiring.
-Common bootstrap must remain loadable on a dedicated server. The current
-bootstrap only logs initialization; it registers no gameplay content or data.
+the display name is **Mira**. Client rendering and GUI code live in
+`mira.platform.forge1710.client`, reached through a sided proxy.
+`CommonProxy` does not reference client classes. `MiraClient` registers the
+workspace keybinding; it opens the demo workspace. No gameplay blocks, items,
+or world data are registered. `InventoryNetwork` registers a request/reply
+channel: only the sending player's carried inventory is observed, on the server
+tick thread, at a throttled rate. Replies contain registry identity, metadata,
+tag fingerprints, ore groups, counts, and availability warnings, without raw
+item NBT. No task state is sent or persisted.
+
+The workspace screen is a thin lifecycle/input adapter. Feature views compose
+the shared UI module, while `WorkspaceSession` owns navigation, filters, draft
+handling, and demo actions without importing Minecraft. `IssueDraft` keeps edit
+values separate from issues until saved. `DemoWorkspace` is disposable
+presentation data, not the authoritative domain or persistence layer. See the
+[UI guide](ui.md) for ownership and extension points.
+
+Body rendering is registered in the client `WidgetCatalog` by model class.
+`DocumentView` composes one block document without dispatching on every widget type.
+`WidgetContext` supplies shared input state, inventory observations, actions,
+and undo-aware mutations. `DocumentDraft` owns a detached ordered body, selection,
+paragraph splitting, insertion and drag ordering. Save commits the complete
+description with one session checkpoint; Cancel discards it. Legacy opening
+description text is presented as the first Note block, which can move anywhere.
+On document save all content lives in the ordered body and the legacy string
+is cleared, preventing duplicate rendering. `IssueDraft.document()` uses the
+same model for creation/full edits. Read-only checkbox actions still use session
+checkpoints; while a document is being edited, all block actions affect its draft.
+Optional portable storage readers are registered in
+`CarriedInventory`, separately from widget types. Known adapters read explicit
+inventory schemas or storage APIs; arbitrary nested NBT is never counted as
+items. The optional `NeiBridge` is loaded only on clients with NEI. Its compile
+dependencies are not bundled or required for plain Forge.
 
 Core interfaces accept ordinary Java values and core-owned types. A player
 identifier may cross this boundary; a game player, world, tile entity, packet,
@@ -51,15 +83,21 @@ transformation. The installable artifact is
 development. Only the final jar goes in a pack's `mods/`; no separate core jar,
 nested loader, or shaded game dependencies are required.
 
+The platform embeds CommonMark Java 0.21.0, its GFM tables/strikethrough/task-list
+and autolink extensions, and autolink-java, with their licenses. This release
+line retains Java 8 compatibility; [later CommonMark versions require Java 11](https://github.com/commonmark/commonmark-java/blob/main/CHANGELOG.md).
+Only the platform depends on them. Markdown rendering, link confirmation,
+asynchronous bounded image loading, wrapping and pointer handling live in the
+client UI module. Dedicated-server entry points do not reach those classes.
+
 `verifyModJar` checks metadata, bootstrap, every current core output entry,
-and an allowlist of owned content. It rejects bundled runtime/test jars and
-fixture classes. Core presently has only package documentation, which javac
-does not emit as a runtime class. This is explicitly not evidence of class
-embedding. `verifyPackagingFixture` uses a separate core source set containing
+the exact resolved Markdown entries/licenses, and an allowlist of owned content.
+It rejects unrelated runtime/test libraries, nested jars and
+fixture classes. `verifyPackagingFixture` uses a separate core source set containing
 one empty probe, the same embedding helper, and RFG reobfuscation. It checks the
 transformed fixture jar and loads/instantiates the probe with an isolated class
 loader. That proves the mechanism; production-output verification automatically
-checks actual core classes when they are introduced. Fixture artifacts live in
+checks the actual core classes. Fixture artifacts live in
 `build/fixtures/`, never the installable mod.
 
 `core:verifyCoreDependencies` rejects all extra production dependencies and

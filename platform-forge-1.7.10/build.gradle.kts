@@ -22,7 +22,29 @@ minecraft {
     // Core is embedded; do not turn the project into an external runtime mod.
     groupsToExcludeFromAutoReobfMapping.add("mira")
 }
+repositories {
+    mavenCentral()
+    maven("https://nexus.gtnewhorizons.com/repository/public/") {
+        content { includeGroup("com.github.GTNewHorizons") }
+    }
+}
+
+// Embed a Java 8-compatible Markdown stack in the platform, never in core.
+val markdownLibraries by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+}
+configurations.implementation.get().extendsFrom(markdownLibraries)
+
 dependencies {
+    markdownLibraries("org.commonmark:commonmark:0.21.0")
+    markdownLibraries("org.commonmark:commonmark-ext-gfm-tables:0.21.0")
+    markdownLibraries("org.commonmark:commonmark-ext-gfm-strikethrough:0.21.0")
+    markdownLibraries("org.commonmark:commonmark-ext-task-list-items:0.21.0")
+    markdownLibraries("org.commonmark:commonmark-ext-autolink:0.21.0")
+    testImplementation("junit:junit:4.13.2")
+    compileOnly("com.github.GTNewHorizons:NotEnoughItems:2.8.155-GTNH:dev") { isTransitive = false }
+    compileOnly("com.github.GTNewHorizons:CodeChickenCore:1.4.22:dev") { isTransitive = false }
     implementation(project(":core")) {
         // RFG's obfuscated-run resolver needs the jar, not Gradle 9's directory variants.
         attributes {
@@ -37,6 +59,12 @@ val coreOutput = coreSourceSets["main"].output
 val fixtureOutput = coreSourceSets["packagingFixture"].output
 
 fun Jar.embedCore(output: Any) { from(output) }
+fun Jar.embedMarkdown() {
+    from({ markdownLibraries.map { zipTree(it) } }) {
+        include("org/commonmark/**", "org/nibor/autolink/**")
+    }
+    from("third-party") { into("META-INF/licenses/mira") }
+}
 
 tasks.withType<JavaCompile>().configureEach { options.encoding = "UTF-8" }
 tasks.withType<Jar>().configureEach {
@@ -47,6 +75,7 @@ tasks.jar {
     archiveBaseName.set("mira")
     // Embed classes BEFORE RFG's reobfJar transformation.
     embedCore(coreOutput)
+    embedMarkdown()
     duplicatesStrategy = DuplicatesStrategy.FAIL
 }
 tasks.processResources {
@@ -75,15 +104,27 @@ val verifyModJar by tasks.registering {
             val metadata = zip.getInputStream(zip.getEntry("mcmod.info")).bufferedReader().readText()
             check(metadata.contains("\"modid\": \"mira\"")) { "Wrong mod id" }
             check(metadata.contains("\"version\": \"${project.version}\"")) { "Unexpanded mod version" }
+            val markdownEntries = markdownLibraries.flatMap { dependency ->
+                ZipFile(dependency).use { library ->
+                    library.entries().asSequence().filterNot { it.isDirectory }.map { it.name }
+                        .filter { it.startsWith("org/commonmark/") || it.startsWith("org/nibor/autolink/") }.toList()
+                }
+            }.toSet()
+            check(markdownEntries.all { it in entries }) { "Missing embedded Markdown classes/resources" }
+            check("META-INF/licenses/mira/commonmark.txt" in entries && "META-INF/licenses/mira/autolink.txt" in entries) {
+                "Missing Markdown library licenses"
+            }
             coreOutput.files.filter { it.isDirectory }.forEach { dir ->
                 dir.walkTopDown().filter { it.isFile }.forEach { file ->
                     val path = file.relativeTo(dir).invariantSeparatorsPath
                     check(path in entries) { "Missing core output: $path" }
                 }
             }
-            // This foundation only owns mira/** plus mod metadata and the manifest.
+            // Own content plus the exact resolved Markdown stack; reject unrelated libraries/tests.
             val unexpected = entries.filterNot {
-                it.startsWith("mira/") || it == "mcmod.info" || it == "META-INF/MANIFEST.MF"
+                it.startsWith("mira/") || it.startsWith("assets/mira/") ||
+                    it == "mcmod.info" || it == "META-INF/MANIFEST.MF" || it in markdownEntries ||
+                    it == "META-INF/licenses/mira/commonmark.txt" || it == "META-INF/licenses/mira/autolink.txt"
             }
             check(unexpected.isEmpty()) { "Unexpected bundled runtime/test content: $unexpected" }
             check(entries.none { it.endsWith(".jar") }) { "Nested jar in mod" }
@@ -100,6 +141,7 @@ val packagingFixtureJar by tasks.registering(Jar::class) {
     from(sourceSets.main.get().output)
     // Use the production embedding mechanism with a real, independently compiled class.
     embedCore(files(coreOutput, fixtureOutput))
+    embedMarkdown()
     duplicatesStrategy = DuplicatesStrategy.FAIL
 }
 val reobfPackagingFixtureJar = tasks.named<ReobfuscatedJar>("reobfPackagingFixtureJar")

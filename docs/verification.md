@@ -1,5 +1,10 @@
 # Foundation verification — 2026-10-25
 
+> Workspace UI revision: feature modules and session tests have been added after
+> the foundation evidence below. The refactored UI has not been compiled, tested,
+> or inspected in-game by the assistant. The user owns all verification under
+> `AGENTS.md`; commands and acceptance steps are in [the UI guide](ui.md).
+
 The initial runtime baseline is **plain Minecraft 1.7.10 + Forge 1614 + Mira
 only**, per the user's implementation direction. No Prism or desktop automation
 was used for these game tests. Full GTNH client/server tests are deferred and

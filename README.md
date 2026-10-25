@@ -1,8 +1,45 @@
 # Mira
 
 Minecraft 1.7.10 / Forge foundation for collaborative tasks, workflows, and
-boards, targeting GT New Horizons **2.9.0-RC-2**. Currently the mod only logs
-initialization. Full-pack compatibility status is in [verification](docs/verification.md).
+boards, targeting GT New Horizons **2.9.0-RC-2**. The first client UI slice
+provides a project workspace backed by disposable sample data. Full-pack
+compatibility status is in [verification](docs/verification.md).
+
+## Workspace UI
+
+Enter a world and press **J** to open Mira. Rebind it under **Controls > Mira**.
+The workspace has Board, Backlog, and Issues views, project switching, search,
+assignee/sprint selectors, issue details, creation/editing, and comments.
+Board cards support dragging between statuses and reordering; on a narrow GUI,
+drop onto a status tab to move a card there. Click a card to open its details.
+Assignees show a skin face beside their nickname. Use **C**/**Ctrl+N** for a new
+issue, **Enter** to create it, **Ctrl+Enter** to create and keep adding, and the
+column's **+** to start in that status. Optional fields expand on demand.
+The description combines Markdown text with ordered checklist, materials,
+location and blocker widgets in one block document. Click text or a widget to
+edit; use a **+** insertion gap or **/** to insert anywhere. **Enter** splits a
+paragraph, **Shift+Enter** inserts a line break. Drag a **::** gutter handle to
+reorder blocks, or use **^/v** in the shared toolbar. **Save / Ctrl+Enter** commits
+the whole description; **Cancel / Escape** discards it. Switching blocks retains
+unfinished edits. The full issue form uses the same document editor. Materials track
+your carried inventory, including supported backpacks, without consuming items.
+With GTNH NEI installed, the workspace reserves the right panel for it: drag an
+item onto the body to add a requirement, or onto a material to add an alternative.
+NEI is optional and is not embedded. Without it, edit Materials and use **Held item**.
+The window reuses Minecraft's inventory frames, creative tabs, buttons,
+item icons, tooltips, and click sound; active resource packs supply the textures.
+Descriptions and text blocks support Markdown source/preview, headings, formatted
+text, lists, quotes, links, code, tables, task lists and images. Formatting tools
+work on selected text. Templates speed up common tasks. Use Undo/**Ctrl+Z** for
+saved actions, and Pin for a HUD tracker. Cards show three title lines and progress.
+All changes are local to the running client session; they are **not saved or
+shared with other players**. The screen labels this explicitly as a demo.
+Inventory observations are read from your player on the Mira server; this does
+not synchronize task data. Plain Forge needs no extra runtime mod.
+
+The [UI guide](docs/ui.md) explains the feature modules, fluent composition,
+controls, and manual acceptance steps. The user owns builds, automated tests,
+and runtime verification under [AGENTS.md](AGENTS.md).
 
 ## Setup on Windows
 
@@ -59,9 +96,10 @@ modern-Java GTNH distribution is tested separately.
 ## Verification
 
 `check` verifies core isolation, final mod contents, and a separately compiled
-class-embedding fixture after reobfuscation. Production core currently has no
-runtime classes. The fixture proves embedding works without inventing domain
-behavior. [Architecture and ownership](docs/architecture.md) explain the seam.
+class-embedding fixture after reobfuscation. Production core contains the typed
+task-body model, matching rules, and inventory allocation. The independent
+fixture also exercises embedding. [Architecture and ownership](docs/architecture.md)
+explain the seam.
 
 ```powershell
 .\scripts\verify-core-boundary.ps1

@@ -22,7 +22,10 @@ public final class TextArea extends TextInput {
     private int caret, anchor, firstLine, ticks;
     private List<Line> lines = new ArrayList<>();
     public TextArea(FontRenderer font, int limit, int rows, String placeholder, Supplier<String> read, Consumer<String> write) {
-        super(font, limit, placeholder, read, write);
+        this(font, limit, rows, placeholder, read, write, false);
+    }
+    TextArea(FontRenderer font, int limit, int rows, String placeholder, Supplier<String> read, Consumer<String> write, boolean separateTextEvents) {
+        super(font, limit, placeholder, read, write, separateTextEvents);
         this.font = font; this.limit = limit; this.rows = rows;
     }
     @Override int height() { return rows * 11 + 8; }
@@ -81,8 +84,10 @@ public final class TextArea extends TextInput {
         caret = atX(lines.get(line), x - field.xPosition); anchor = caret;
     }
     @Override void type(char character, int key) {
+        type(character, key, GuiScreen.isCtrlKeyDown(), GuiScreen.isShiftKeyDown());
+    }
+    void type(char character, int key, boolean control, boolean shift) {
         layout(Math.max(1, field.width));
-        boolean control = GuiScreen.isCtrlKeyDown(), shift = GuiScreen.isShiftKeyDown();
         if (!control && character == '/' && slash != null && value.trim().isEmpty()) { slash.run(); return; }
         if (control && key == Keyboard.KEY_A) { anchor = 0; caret = value.length(); return; }
         if (control && (key == Keyboard.KEY_C || key == Keyboard.KEY_X)) {

@@ -16,6 +16,10 @@ public class TextInput {
     boolean documentStyle;
 
     public TextInput(FontRenderer font, int limit, String placeholder, Supplier<String> read, Consumer<String> write) {
+        this(font, limit, placeholder, read, write, false);
+    }
+
+    TextInput(FontRenderer font, int limit, String placeholder, Supplier<String> read, Consumer<String> write, boolean separateTextEvents) {
         field = new GuiTextField(font, 0, 0, 100, 20);
         field.setMaxStringLength(limit);
         field.setEnableBackgroundDrawing(false);

@@ -2,8 +2,12 @@ package mira.platform.forge1710.client.ui;
 
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import cpw.mods.fml.common.Loader;
+import cpw.mods.fml.common.ModContainer;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.GuiTextField;
+import net.minecraft.util.ChatAllowedCharacters;
+import org.lwjgl.input.Keyboard;
 
 /** Native text editing bound to presentation state. Caret, selection and clipboard stay vanilla. */
 public class TextInput {
@@ -13,15 +17,34 @@ public class TextInput {
     protected final Consumer<String> write;
     private Runnable submit;
     private boolean preserveEditing, synchronizedOnce;
+    private final boolean separateTextEvents;
     boolean documentStyle;
 
     public TextInput(FontRenderer font, int limit, String placeholder, Supplier<String> read, Consumer<String> write) {
+        this(font, limit, placeholder, read, write, hasSeparateTextEvents());
+    }
+
+    TextInput(FontRenderer font, int limit, String placeholder, Supplier<String> read, Consumer<String> write, boolean separateTextEvents) {
         field = new GuiTextField(font, 0, 0, 100, 20);
         field.setMaxStringLength(limit);
         field.setEnableBackgroundDrawing(false);
         this.placeholder = placeholder;
         this.read = read;
         this.write = write;
+        this.separateTextEvents = separateTextEvents;
+    }
+
+    static boolean hasSeparateTextEvents() {
+        ModContainer lwjgl3ify = Loader.instance().getIndexedModList().get("lwjgl3ify");
+        return lwjgl3ify != null && lwjgl3ify.getVersion().startsWith("3.");
+    }
+
+    protected final char textCharacter(char character, int key) {
+        // lwjgl3ify 3 / SDL emits both a physical key with a naive character and
+        // a KEY_NONE committed-text event. Only the latter inserts printable text.
+        // Keep control characters and key codes for navigation/clipboard shortcuts.
+        return separateTextEvents && key != Keyboard.KEY_NONE && ChatAllowedCharacters.isAllowedCharacter(character)
+            ? '\0' : character;
     }
 
     void synchronize() {
@@ -32,7 +55,7 @@ public class TextInput {
     }
 
     void type(char character, int key) {
-        if (field.textboxKeyTyped(character, key)) write.accept(field.getText());
+        if (field.textboxKeyTyped(textCharacter(character, key), key)) write.accept(field.getText());
     }
     int height() { return 20; }
     public TextInput onSubmit(Runnable action) { submit = action; return this; }

@@ -7,8 +7,8 @@ is recorded in [integration-research.md](integration-research.md).
 
 | Module | Installable output under its `build/libs/` | Purpose |
 | --- | --- | --- |
-| `integration-agent-tools-1.7.10` | `mira-agent-tools-1.7.10-0.1.0.jar` | MCP provider, client bridge, task tools and scoped task-card references |
-| `integration-harness-1.7.10` | `mira-harness-1.7.10-0.1.0.jar` | Live `mira:tasks-v1` cards in Harness chat |
+| `integration-agent-tools-1.7.10` | `mira-agent-tools-1.7.10-0.1.1.jar` | MCP provider, client bridge, task tools and scoped task-card references |
+| `integration-harness-1.7.10` | `mira-harness-1.7.10-0.1.1.jar` | Live `mira:tasks-v1` cards in Harness chat |
 
 Both require the **rebuilt base Mira mod from this checkout**. The Harness module
 depends on Mira and Harness, independently of the MCP module. The MCP module also
@@ -90,13 +90,13 @@ For the embedded MCP host plus Harness, install on the **client**:
 
 ```text
 mods/
-  mira-0.1.0.jar
+  mira-0.1.1.jar
   minecraft-agent-tools-mcp-forge-1.7.10-0.1.0.jar
-  mira-agent-tools-1.7.10-0.1.0.jar
+  mira-agent-tools-1.7.10-0.1.1.jar
   minecraft-harness-forge-1.7.10-0.1.0.jar
-  mira-harness-1.7.10-0.1.0.jar
+  mira-harness-1.7.10-0.1.1.jar
 config/minecraftagenttools/plugins/
-  mira-agent-tools-1.7.10-0.1.0.jar   # Second copy of the same artifact
+  mira-agent-tools-1.7.10-0.1.1.jar   # Second copy of the same artifact
 ```
 
 Install base Mira on the server as usual; these addons are client integrations.

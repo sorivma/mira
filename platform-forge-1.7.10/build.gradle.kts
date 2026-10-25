@@ -66,6 +66,7 @@ dependencies {
     markdownLibraries("org.commonmark:commonmark-ext-task-list-items:0.21.0")
     markdownLibraries("org.commonmark:commonmark-ext-autolink:0.21.0")
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.mockito:mockito-core:4.11.0") // Last major supporting the Java 8 test runtime.
     compileOnly("com.github.GTNewHorizons:NotEnoughItems:2.8.155-GTNH:dev") { isTransitive = false }
     compileOnly("com.github.GTNewHorizons:CodeChickenCore:1.4.22:dev") { isTransitive = false }
     implementation(project(":core")) {

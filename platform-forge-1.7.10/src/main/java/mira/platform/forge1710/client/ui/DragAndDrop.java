@@ -36,17 +36,22 @@ final class DragAndDrop {
         return active() && bounds.contains(mouseX, mouseY) && accepts.test(press.payload);
     }
 
-    void panZone(Ui.Scroll scroll, Box bounds) { panZones.add(new PanZone(scroll, bounds)); }
+    void panZone(Ui.Scroll scroll, Box bounds, boolean horizontal) { panZones.add(new PanZone(scroll, bounds, horizontal)); }
 
     void tick() {
         if (!active()) return;
+        boolean pannedX = false, pannedY = false;
         for (int i = panZones.size() - 1; i >= 0; i--) {
             PanZone zone = panZones.get(i);
             if (!zone.bounds.contains(mouseX, mouseY)) continue;
-            int edge = Math.min(18, zone.bounds.h / 3);
-            if (mouseY < zone.bounds.y + edge) zone.scroll.nudge(-8);
-            else if (mouseY >= zone.bounds.y + zone.bounds.h - edge) zone.scroll.nudge(8);
-            return;
+            if (zone.horizontal ? pannedX : pannedY) continue;
+            int position = zone.horizontal ? mouseX : mouseY;
+            int start = zone.horizontal ? zone.bounds.x : zone.bounds.y;
+            int extent = zone.horizontal ? zone.bounds.w : zone.bounds.h;
+            int edge = Math.min(18, extent / 3);
+            if (position < start + edge) zone.scroll.nudge(-8);
+            else if (position >= start + extent - edge) zone.scroll.nudge(8);
+            if (zone.horizontal) pannedX = true; else pannedY = true;
         }
     }
 
@@ -109,6 +114,7 @@ final class DragAndDrop {
     private static final class PanZone {
         final Ui.Scroll scroll;
         final Box bounds;
-        PanZone(Ui.Scroll scroll, Box bounds) { this.scroll = scroll; this.bounds = bounds; }
+        final boolean horizontal;
+        PanZone(Ui.Scroll scroll, Box bounds, boolean horizontal) { this.scroll = scroll; this.bounds = bounds; this.horizontal = horizontal; }
     }
 }

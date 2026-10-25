@@ -1,6 +1,7 @@
 package mira.platform.forge1710.client.workspace;
 
 import mira.platform.forge1710.client.ui.Ui;
+import mira.platform.forge1710.client.ui.WorkspaceViewport;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Container;
@@ -19,22 +20,22 @@ public final class WorkspaceScreen extends GuiContainer {
     private WorkspaceSession session;
     private WorkspaceShell shell;
     private Ui ui;
+    private WorkspaceViewport viewport;
+    private boolean itemsOpen;
     private boolean repeatEvents;
     private boolean keyboardActive;
     public WorkspaceScreen() { super(new Container() { public boolean canInteractWith(EntityPlayer player) { return true; } }); }
 
     @Override
     public void initGui() {
-        xSize = Math.min(920, Math.max(164, width - (nei ? 138 : 12)));
-        ySize = Math.min(520, height - (nei ? 44 : 12));
+        layoutWorkspace();
         super.initGui();
-        guiLeft = nei ? 6 : (width - xSize) / 2;
-        guiTop = (height - ySize) / 2;
         // Empty client-only container: normal player inventory remains the server's active window.
         if (mc.thePlayer != null) mc.thePlayer.openContainer = mc.thePlayer.inventoryContainer;
         ui = new Ui(mc, fontRendererObj);
         if (session == null) session = new WorkspaceSession(new WorkspaceData(), mc.thePlayer == null ? "You" : mc.thePlayer.getCommandSenderName(), JiraClient.backend());
-        if (shell == null) shell = new WorkspaceShell(session, fontRendererObj, () -> mc.displayGuiScreen(null));
+        if (shell == null) shell = new WorkspaceShell(session, fontRendererObj, () -> mc.displayGuiScreen(null),
+            nei ? this::toggleItems : null, this::itemsVisible);
         if (!keyboardActive) repeatEvents = Keyboard.areRepeatEventsEnabled();
         keyboardActive = true;
         Keyboard.enableRepeatEvents(true);
@@ -42,14 +43,30 @@ public final class WorkspaceScreen extends GuiContainer {
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+        layoutWorkspace();
         super.drawScreen(mouseX, mouseY, partialTicks);
     }
     @Override protected void drawGuiContainerBackgroundLayer(float partialTicks, int mouseX, int mouseY) {
-        ui.draw(shell.build(xSize, ui), guiLeft, guiTop, xSize, ySize, mouseX, mouseY);
+        ui.draw(shell.build(viewport.width, ui), viewport.x, viewport.y, viewport.width, viewport.height, mouseX, mouseY);
     }
+    private void layoutWorkspace() {
+        viewport = new WorkspaceViewport(width, height, itemsVisible());
+        xSize = viewport.containerWidth;
+        ySize = viewport.height;
+        guiLeft = (width - xSize) / 2;
+        guiTop = viewport.y;
+    }
+    private void toggleItems() {
+        itemsOpen = !itemsVisible();
+        ui.blur();
+        ui.cancelPointer();
+        NeiBridge.closed();
+        if (itemsOpen) NeiBridge.show();
+    }
+    public boolean itemsVisible() { return nei && itemsOpen && NeiBridge.visible(); }
     @Override protected void handleMouseClick(Slot slot, int slotId, int button, int mode) {}
-    public boolean workspacePoint(int x, int y) { return ui != null && ui.modal() || x >= guiLeft && x < guiLeft + xSize && y >= guiTop && y < guiTop + ySize; }
-    public boolean overlapsWorkspace(int x, int y, int w, int h) { return x < guiLeft + xSize && x + w > guiLeft && y < guiTop + ySize && y + h > guiTop; }
+    public boolean workspacePoint(int x, int y) { return ui != null && ui.modal() || viewport != null && viewport.contains(x, y); }
+    public boolean overlapsWorkspace(int x, int y, int w, int h) { return viewport != null && viewport.overlaps(x, y, w, h); }
     public boolean dropItem(ItemStack stack, int x, int y) {
         if (ui == null || stack == null || stack.getItem() == null) return false;
         try { ItemDescriptors.describe(stack); }
@@ -60,22 +77,23 @@ public final class WorkspaceScreen extends GuiContainer {
     public void workspaceKey(char character, int key) { keyTyped(character, key); }
     public void blurWorkspace() { if (ui != null) ui.blur(); }
     public void openPinned() { if (session != null && PinnedTaskHud.issue() != null) session.openIssue(PinnedTaskHud.issue().key); }
+    public void openTask(String taskId) { if (session != null) session.openTask(taskId); }
 
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int button) {
-        if (nei && !ui.modal() && NeiBridge.mouseDown(this, mouseX, mouseY, button)) return;
+        if (itemsVisible() && !ui.modal() && NeiBridge.mouseDown(this, mouseX, mouseY, button)) return;
         if (button == 0) ui.click(mouseX, mouseY);
     }
 
     @Override
     protected void mouseClickMove(int mouseX, int mouseY, int button, long elapsed) {
-        if (nei) NeiBridge.dragged(this, mouseX, mouseY, button, elapsed);
+        if (itemsVisible()) NeiBridge.dragged(this, mouseX, mouseY, button, elapsed);
         if (button == 0) ui.drag(mouseX, mouseY);
     }
 
     @Override
     protected void mouseMovedOrUp(int mouseX, int mouseY, int button) {
-        if (nei) NeiBridge.mouseUp(this, mouseX, mouseY, button);
+        if (itemsVisible()) NeiBridge.mouseUp(this, mouseX, mouseY, button);
         if (button == 0) ui.release(mouseX, mouseY);
     }
 
@@ -89,6 +107,7 @@ public final class WorkspaceScreen extends GuiContainer {
 
     @Override
     protected void keyTyped(char character, int key) {
+        if (nei && !ownsKeyboard() && NeiBridge.lastKeyTyped(this, character, key)) return;
         if (ui.handleDragKey(key)) return;
         if (ui.handleMenuKey(character, key)) return;
         if (key == Keyboard.KEY_ESCAPE) {

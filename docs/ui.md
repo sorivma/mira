@@ -13,10 +13,14 @@ for the command/storage contracts and multiplayer acceptance procedure.
 
 The workspace is an inventory-style window over the dimmed world, with compact
 creative-inventory tabs for Board, Backlog, and Issues. It is capped at 920 by
-520 scaled pixels, preserving Minecraft's configured GUI scale. With NEI it
-aligns left and reserves 132 scaled pixels at the right and space below for
-NEI controls. Without NEI it is centered. Its empty client-only container
-supports NEI's normal GUI integration without changing server inventory slots.
+520 scaled pixels, preserving Minecraft's configured GUI scale. It is centered
+and uses the full available width by default, including when NEI is installed.
+**Items** opens the NEI picker on the right; only while it is visible does the
+workspace align left and reserve up to 132 scaled pixels plus footer space.
+Closing the picker restores the full width. The empty client-only container
+provides a centered footprint for NEI's panel calculations, separate from the
+workspace bounds; it does not change server inventory slots. Mira explicitly
+enables the picker widgets instead of relying on NEI's left-margin heuristic.
 No Minecraft textures are copied into Mira's jar. `MinecraftSkin` binds these
 resources directly from the active resource pack:
 
@@ -119,7 +123,7 @@ All paths below are relative to
 | `MiraClient` | Key registration and one workspace instance per client run |
 | `workspace/WorkspaceScreen` | Minecraft lifecycle and input forwarding |
 | `workspace/WorkspaceShell` | Header, navigation, filters, responsive composition |
-| `workspace/BoardView` | Status columns, compact column tabs, column scroll positions |
+| `workspace/BoardView` | Status columns, horizontal board and vertical column scroll positions |
 | `workspace/BacklogView` | Issues grouped by sprint/backlog |
 | `workspace/IssueListView` | Flat filtered issue list |
 | `workspace/IssueDetailsView` | Issue presentation, inline text edits, comments, activity |
@@ -145,6 +149,7 @@ All paths below are relative to
 | `workspace/WorkspacePlayers` | Game roster options and inline assignee/Me controls |
 | `workspace/DemoWorkspace` (test sources) | Disposable UI interaction fixtures |
 | `ui/Ui` | Layout, clipping, painting, hit testing, scroll and focus dispatch |
+| `ui/WorkspaceViewport` | Workspace bounds and NEI's empty container footprint |
 | `ui/MinecraftSkin` | Minecraft texture slices, item rendering and vanilla tooltips |
 | `ui/ChoiceMenu` | Anchored selection menu, scrolling and arrow-key selection |
 | `ui/DragAndDrop` | Click/drag threshold, accepting targets, previews and edge scroll state |
@@ -199,8 +204,10 @@ Node list = column(5).scroll(scroll);
 list.add(IssueWidgets.issueRow(issue, () -> session.select(issue)));
 ```
 
-The same clipped rectangles drive painting and pointer actions. Nested scroll
-areas take wheel input under the pointer. Hidden text inputs lose focus;
+Scrolling rows use `row(gap).minChildWidth(140).scroll(scroll)` to keep readable
+columns and show a bottom scrollbar on overflow. Shift+wheel scrolls horizontally;
+ordinary wheel input goes to the deepest scrollable area under the pointer.
+The same clipped rectangles drive painting and pointer actions. Hidden text inputs lose focus;
 Tab/Shift+Tab traverse the inputs currently visible in the viewport. Pointer
 targets are discarded after clicks because an action may replace the view.
 
@@ -219,7 +226,7 @@ column(4).inset()
 
 `DragAndDrop` delays the card's click action until release. At five scaled
 pixels of movement the gesture becomes a drag. The source dims, the card
-follows the pointer, accepting columns/tabs get a green outline, and another
+follows the pointer, accepting columns get a green outline, and another
 card gets an insertion line. Nested card targets win over column targets.
 The preview does not register hitboxes or targets. The session changes only
 after releasing onto a target; a release elsewhere or Escape cancels it.
@@ -243,9 +250,10 @@ rendering/input behavior needed by the feature.
 - **Reset** clears search and both filters without changing the project.
 - **Drag cards** between columns to change status. Drop before another card
   at its insertion line to change order, or onto the column background/header
-  to append to the column. In the compact layout, drop onto the desired status
-  tab; that status opens after the move. No horizontal-board replacement is used.
-- Hold a dragged card near a column's upper/lower edge to scroll it. A simple
+  to append to the column. Columns keep their headings and counts at every width.
+  Use the bottom scrollbar or **Shift+wheel** to reach columns off screen.
+- Hold a dragged card near a column's upper/lower edge to scroll it, or the
+  board's left/right edge to pan across columns. A simple
   click still opens details. Escape cancels a drag before navigating away.
 - **Enter** saves from the issue title or posts a focused comment. Inside the
   document it splits a text paragraph at the caret, replacing any selection,
@@ -260,9 +268,9 @@ rendering/input behavior needed by the feature.
   running client. Each project has its own unfinished create draft.
 - Cancelling Edit discards that edit. Cancelling Create retains its draft for
   the next Create action in that project.
-- Navigation uses compact top tabs at every width. Narrow boards show one
-  configurable column with tabs/counts; all columns appear when enough width
-  is available. At a window width of 860 scaled pixels,
+- Navigation uses compact top tabs at every width. Board columns stay side by
+  side with a minimum readable width and horizontal scrolling when necessary.
+  At a window width of 860 scaled pixels,
   selecting an issue opens a side inspector with an Open action for expansion.
   Filters are hidden in the full issue view to free space for content.
 - **Ctrl+Enter** saves the document in issue details. In the full issue form it
@@ -393,11 +401,11 @@ Depth, entry, and visitation limits bound collection; shared storage identities
 prevent counting the same bag contents twice. Storage readers run on the server
 tick thread for authoritative snapshots and may reject unavailable client reads.
 
-## User-run verification
+## Verification
 
-Per `AGENTS.md`, the assistant does not execute verification. The refactored
-sources and added tests have not been compiled or run. Earlier foundation
-evidence in `verification.md` does not validate this UI revision.
+The 0.1.0 release preparation ran the automated tests and artifact checks
+recorded in [verification.md](verification.md). Visual and multiplayer
+acceptance remain manual; passing unit tests does not validate every screen.
 
 With the JDK environment configured as in the README:
 
@@ -423,7 +431,8 @@ single-action document undo and lossless Markdown saves. `DocumentDraftTest`
 covers insertion gaps, drag index adjustment, paragraph splitting, slash
 replacement and selection after removal. `MarkdownTest` covers parser constructs and
 styled wrapping/alignment without starting a game. JUnit is test-only
-and is not bundled in the mod. These tests have not been executed by the assistant.
+and is not bundled in the mod. `MarkdownImagesTest` verifies that remote images
+wait for consent and rejects insecure/file URL schemes.
 
 For manual acceptance:
 
@@ -443,9 +452,10 @@ For manual acceptance:
     Confirm Mira uses them, with readable text and intact panel corners.
 11. Drag between columns, reorder cards at the insertion line, and drop into
     an empty column. Check status/counts and confirm a move does not open details.
-12. On a narrow GUI, drag onto a status tab; check that it opens the destination.
-    Try releasing outside the board, Escape, slight click movement and edge
-    scrolling. None of the cancelled gestures should alter status/order.
+12. On a narrow GUI, check that board columns remain columns. Use the bottom
+    scrollbar and Shift+wheel, then drag to the board edge to reach another column.
+    Try releasing outside the board, Escape, slight click movement and vertical
+    edge scrolling. None of the cancelled gestures should alter status/order.
 13. Use Me in a task and form. Check the face beside the nickname, the online
     roster picker, neutral Unassigned, and the fallback for an unknown skin.
 14. Create through C/Ctrl+N, Enter, and a column's + button. Check filter defaults,
@@ -458,10 +468,14 @@ For manual acceptance:
 17. Add several sections of the same type, rename/reorder/remove them, cancel an
     edit, then save another edit. Check multiline selection/copy/paste and Enter
     for adding checklist steps. Change templates without losing existing sections.
-18. With NEI installed, drag from its item and bookmark panels into body,
-    Materials, and an existing material row. Check quantities, alternatives,
-    rejected drops, NEI search, and that no items are given or inventory slots
-    changed. Repeat plain Forge without NEI.
+18. With NEI installed, check that the initial workspace has its full width.
+    Open **Items** and check the item grid, paging and search; close it and check
+    that the width returns without losing a draft. Hide NEI with its configured
+    shortcut, then reopen it with **Items**. Drag items into body, Materials and
+    an existing material row. Check quantities, alternatives, rejected drops and
+    plain clicks: no items should be given or inventory slots changed. Check
+    search focus returns to Mira when clicking a field. Repeat plain Forge
+    without NEI. Bookmark and utility panels remain outside the workspace picker.
 19. Compare automatic counts against main inventory, armor, cursor stack, carried
     and equipped supported bags. Try duplicate/shared bags and nested storage.
     Exercise item/variant/tag/ore matching, scopes, manual checks, overlapping

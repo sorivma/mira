@@ -1,0 +1,70 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  release:
+    name: Verify and publish
+    runs-on: windows-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Check release identity
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          $version = (Select-String -Path gradle.properties -Pattern '^version=(.+)$').Matches.Groups[1].Value
+          if ($env:RELEASE_TAG -cne "v$version") { throw 'Tag and Gradle version differ' }
+          if ($version -notmatch '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-(0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(\.(0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*)?$') { throw 'Invalid SemVer' }
+          if (!(Test-Path "docs/release-notes/$env:RELEASE_TAG.md")) { throw 'Release notes are required' }
+      - uses: ./.github/actions/java
+      - uses: gradle/actions/setup-gradle@0b6dd653ba04f4f93bf581ec31e66cbd7dcb644d # v4
+      - name: Download verified API inputs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/fetch-integration-apis.py
+      - name: Build and verify every release artifact
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          $integrationArgs = Get-Content .work/integration-apis/gradle-args.txt
+          .\gradlew.bat @integrationArgs check build checkIntegrations assembleIntegrations --no-daemon --console=plain
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python scripts/package-release.py --tag $env:RELEASE_TAG
+      - name: Attest release artifacts
+        if: github.event.repository.private == false
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: build/release/*
+      - name: Publish complete release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          $assets = Get-ChildItem build/release -File | ForEach-Object { $_.FullName }
+          $releaseArgs = @('release', 'create', $env:RELEASE_TAG, '--verify-tag', '--draft', '--title', "Mira $env:RELEASE_TAG", '--notes-file', "docs/release-notes/$env:RELEASE_TAG.md")
+          if ($env:RELEASE_TAG.Contains('-')) { $releaseArgs += '--prerelease' }
+          gh @releaseArgs @assets
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          gh release edit $env:RELEASE_TAG --draft=false
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: release-reports
+          path: '**/build/reports/'
+          retention-days: 14

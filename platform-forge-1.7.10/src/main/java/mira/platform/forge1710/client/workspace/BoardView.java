@@ -13,29 +13,20 @@ import static mira.platform.forge1710.client.ui.Ui.*;
 final class BoardView {
     private final WorkspaceSession session;
     private final Map<String, Ui.Scroll> scrolls = new HashMap<>();
-    private String compactColumn = "";
+    private final Ui.Scroll boardScroll = new Ui.Scroll();
     private Ui ui;
     BoardView(WorkspaceSession session) { this.session = session; }
-    Node build(int availableWidth, Consumer<Status> create, Ui ui) {
+    Node build(Consumer<Status> create, Ui ui) {
         this.ui = ui;
         List<BoardColumn> columns = session.columns();
         if (columns.isEmpty()) return text("Configure board columns in Settings.");
-        if (columns.stream().noneMatch(c -> c.id.equals(compactColumn))) compactColumn = columns.get(0).id;
         List<Issue> issues = session.issues();
-        if (availableWidth < Math.max(480, columns.size() * 140)) {
-            Node tabs = row(3).height(20); BoardColumn selected = columns.get(0);
-            for (BoardColumn lane : columns) {
-                if (lane.id.equals(compactColumn)) selected = lane;
-                Node tab = button(lane.name + " " + issues.stream().filter(lane::contains).count(), lane.id.equals(compactColumn), () -> compactColumn = lane.id);
-                if (session.writable()) tab.dropTarget(Issue.class, issue -> { drop(issue, lane, null); compactColumn = lane.id; });
-                tabs.add(tab);
-            }
-            return column(4).add(tabs, lane(selected, issues, false, create));
-        }
-        Node result = row(5); for (BoardColumn lane : columns) result.add(lane(lane, issues, true, create)); return result;
+        Node result = row(5).minChildWidth(140).scroll(boardScroll);
+        for (BoardColumn lane : columns) result.add(lane(lane, issues, create));
+        return result;
     }
     Status creationStatus() { return session.statuses().length == 0 ? Status.OPEN : session.statuses()[0]; }
-    private Node lane(BoardColumn lane, List<Issue> all, boolean heading, Consumer<Status> create) {
+    private Node lane(BoardColumn lane, List<Issue> all, Consumer<Status> create) {
         List<Issue> issues = all.stream().filter(lane::contains).collect(Collectors.toList());
         Node cards = column(4).scroll(scrolls.computeIfAbsent(lane.id, key -> new Ui.Scroll()));
         for (Issue issue : issues) {
@@ -46,7 +37,7 @@ final class BoardView {
         if (issues.isEmpty()) cards.add(text("No matching issues", 0xFF202020).height(24));
         Node result = column(4).pad(4).inset();
         if (session.writable()) result.dropTarget(Issue.class, issue -> drop(issue, lane, null));
-        if (heading) result.add(row(3).height(20).add(Ui.heading(lane.name + " (" + issues.size() + ")", 0xFF202020),
+        result.add(row(3).height(20).add(Ui.heading(lane.name + " (" + issues.size() + ")", 0xFF202020),
             session.writable() ? button("+", () -> create.accept(creationStatus())).width(18).hint("New issue starts in its workflow's initial status") : space()));
         return result.add(cards);
     }

@@ -79,12 +79,36 @@ introduce speculative repositories, platform wrappers, or placeholder behavior.
 
 ## Build and development instance
 
-The root aggregates checks and assembly. Only the platform applies
-RetroFuturaGradle (RFG), the low-level Forge development plugin. No GTNHGradle,
+Optional `integration-agent-tools-1.7.10` and `integration-harness-1.7.10` modules
+depend on the base platform; no dependency points from core/base Mira into either
+addon. `MiraClientAccess` is a client-thread seam for independent session tokens,
+detached permission-filtered snapshots, lightweight cached task cards, asynchronous
+commands and explicit task navigation. It reuses `JiraClient` and its server channel.
+`WorkspaceSession` owns navigation across workspaces/projects; the screen only forwards
+the request. The existing screen/session is reused so integration clicks retain local
+drafts and do not accumulate backend listeners.
+
+The Agent Tools addon embeds the neighbor's GameBridge/protocol and supplies a
+portable ToolProvider loaded from the host's plugin directory. Socket I/O remains
+off the game thread; bridge callbacks run on client ticks. Queued writes report
+PENDING until a server reply, with stable request IDs and expected field versions.
+The Harness addon uses its public WidgetCanvas and widget registry, reads live
+Mira projections and performs navigation only on a user click. It depends directly
+on Mira, independently of the MCP addon. Both have sided bootstraps. See
+[integration setup](integrations.md) and [source research](integration-research.md).
+
+The root aggregates base checks and assembly; optional addons have explicit
+`assembleIntegrations` / `checkIntegrations` tasks. The platform and optional
+Forge integrations apply RetroFuturaGradle (RFG), the low-level Forge development plugin. No GTNHGradle,
 GTNH convention plugins, Blowdryer, or project template is used.
 Configuration on demand keeps `:core:check` from configuring/resolving RFG or
 preparing Minecraft. Keep root aggregation dependencies as task paths; do not
 add eager cross-project platform configuration to the root or core.
+
+`-PmiraIntegrations=true` includes the optional projects for their builds or IDE
+import. Without it, unqualified lifecycle selectors such as `build` and `check`
+cannot select addon tasks and require neighboring API artifacts. Aggregation
+tasks fail with an enablement message if invoked without the flag.
 
 RFG uses the conventional `platform-forge-1.7.10/run/` development instance:
 mods, config, logs, saves, and native libraries live there. The dedicated

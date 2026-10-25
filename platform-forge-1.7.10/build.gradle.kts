@@ -87,6 +87,12 @@ tasks.processResources {
 tasks.withType<RunMinecraftTask>().configureEach {
     minHeapSize = "256M"
     maxHeapSize = "2G"
+    if (providers.gradleProperty("miraIntegrations").map { it.toBoolean() }.getOrElse(false)) {
+        when (name) {
+            "runClient" -> dependsOn(":prepareLocalIntegrationClient")
+            "runObfClient" -> dependsOn(":prepareLocalObfuscatedIntegrationClient")
+        }
+    }
 }
 
 val finalJar = tasks.named<ReobfuscatedJar>("reobfJar")
@@ -123,7 +129,7 @@ val verifyModJar by tasks.registering {
             // Own content plus the exact resolved Markdown stack; reject unrelated libraries/tests.
             val unexpected = entries.filterNot {
                 it.startsWith("mira/") || it.startsWith("assets/mira/") ||
-                    it == "mcmod.info" || it == "META-INF/MANIFEST.MF" || it in markdownEntries ||
+                    it == "mcmod.info" || it == "META-INF/MANIFEST.MF" || it == "META-INF/LICENSE-mira" || it in markdownEntries ||
                     it == "META-INF/licenses/mira/commonmark.txt" || it == "META-INF/licenses/mira/autolink.txt"
             }
             check(unexpected.isEmpty()) { "Unexpected bundled runtime/test content: $unexpected" }

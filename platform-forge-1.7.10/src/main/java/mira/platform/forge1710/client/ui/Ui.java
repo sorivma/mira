@@ -242,10 +242,13 @@ public final class Ui {
         int imageHeight = Math.max(1, imageWidth * image.height / image.width);
         if (imageHeight > 160) { imageWidth = Math.max(1, imageWidth * 160 / imageHeight); imageHeight = 160; }
         final int w = imageWidth, h = imageHeight;
-        return new Node(false, 0).height(texture == null ? 24 : h + 15).hint(alt, source).click(() -> openLink.accept(source))
+        return new Node(false, 0).height(texture == null ? 24 : h + 15).hint(alt, source).click(() -> {
+            if (image.requiresConsent) MarkdownImages.request(source);
+            else openLink.accept(source);
+        })
             .paint((ui, box) -> {
                 if (texture == null) {
-                    ui.font.drawString(ui.fit((image.failed ? "Image unavailable: " : "Loading image: ") + alt, box.w), box.x, box.y + 6, MUTED);
+                    ui.font.drawString(ui.fit((image.requiresConsent ? "Click to load image: " : image.failed ? "Image unavailable: " : "Loading image: ") + alt, box.w), box.x, box.y + 6, MUTED);
                     return;
                 }
                 ui.minecraft.getTextureManager().bindTexture(texture);
@@ -439,7 +442,7 @@ public final class Ui {
     public void drag(int x, int y) {
         mouseX = x;
         mouseY = y;
-        if (dragging != null) dragging.move(y);
+        if (dragging != null) dragging.move(x, y);
         cardDrag.move(x, y);
     }
 
@@ -461,10 +464,18 @@ public final class Ui {
     public void cancelPointer() { dragging = null; cardDrag.cancel(); }
 
     public void wheel(int x, int y, int delta) {
+        boolean sideways = Keyboard.isKeyDown(Keyboard.KEY_LSHIFT) || Keyboard.isKeyDown(Keyboard.KEY_RSHIFT);
+        if (sideways) for (int i = scrolls.size() - 1; i >= 0; i--) {
+            ScrollHit hit = scrolls.get(i);
+            if (hit.horizontal && hit.box.contains(x, y) && hit.scroll.max > 0) {
+                hit.scroll.nudge(-Integer.signum(delta) * 28);
+                return;
+            }
+        }
         for (int i = scrolls.size() - 1; i >= 0; i--) {
             ScrollHit hit = scrolls.get(i);
-            if (hit.box.contains(x, y)) {
-                hit.scroll.offset = Math.max(0, Math.min(hit.scroll.max, hit.scroll.offset - Integer.signum(delta) * 28));
+            if (hit.box.contains(x, y) && hit.scroll.max > 0) {
+                hit.scroll.nudge(-Integer.signum(delta) * 28);
                 return;
             }
         }
@@ -478,22 +489,22 @@ public final class Ui {
             return null;
         }
         Box inner = box.inset(node.padding);
-        if (node.scroll != null) inner = new Box(inner.x, inner.y, inner.w - 8, inner.h);
+        if (node.scroll != null) inner = scrollContent(inner, node.horizontal);
         int available = node.horizontal ? inner.w : inner.h;
         int fixed = Math.max(0, node.children.size() - 1) * node.gap, flexible = 0;
         for (Node child : node.children) {
             int requested = node.horizontal ? child.width : child.height;
             if (requested < 0) flexible++; else fixed += requested;
         }
+        if (node.horizontal) fixed += flexible * node.minChildWidth;
         int remaining = Math.max(0, available - fixed), cursor = node.horizontal ? inner.x : inner.y;
         if (node.scroll != null) {
-            node.scroll.max = Math.max(0, fixed - available);
-            node.scroll.offset = Math.max(0, Math.min(node.scroll.offset, node.scroll.max));
+            node.scroll.range(fixed, available);
             cursor -= node.scroll.offset;
         }
         for (Node child : node.children) {
             int size = node.horizontal ? child.width : child.height;
-            if (size < 0) { size = remaining / flexible; remaining -= size; flexible--; }
+            if (size < 0) { int share = remaining / flexible; remaining -= share; flexible--; size = share + (node.horizontal ? node.minChildWidth : 0); }
             Box childBox = node.horizontal
                 ? new Box(cursor, inner.y, size, child.height < 0 ? inner.h : child.height)
                 : new Box(inner.x, cursor, child.width < 0 ? inner.w : child.width, size);
@@ -501,10 +512,13 @@ public final class Ui {
             if (target != null) {
                 if (node.scroll != null) {
                     int previous = node.scroll.offset;
-                    int delta = target.y < inner.y || target.h > inner.h ? target.y - inner.y
-                        : Math.max(0, target.y + target.h - inner.y - inner.h);
+                    int start = node.horizontal ? inner.x : inner.y, extent = node.horizontal ? inner.w : inner.h;
+                    int targetStart = node.horizontal ? target.x : target.y, targetSize = node.horizontal ? target.w : target.h;
+                    int delta = targetStart < start || targetSize > extent ? targetStart - start
+                        : Math.max(0, targetStart + targetSize - start - extent);
                     node.scroll.offset = Math.max(0, Math.min(node.scroll.max, previous + delta));
-                    target = new Box(target.x, target.y - node.scroll.offset + previous, target.w, target.h);
+                    int shift = previous - node.scroll.offset;
+                    target = new Box(target.x + (node.horizontal ? shift : 0), target.y + (node.horizontal ? 0 : shift), target.w, target.h);
                 }
                 return target;
             }
@@ -551,7 +565,7 @@ public final class Ui {
             return;
         }
         Box inner = box.inset(node.padding);
-        if (node.scroll != null) inner = new Box(inner.x, inner.y, inner.w - 8, inner.h);
+        if (node.scroll != null) inner = scrollContent(inner, node.horizontal);
         int available = node.horizontal ? inner.w : inner.h;
         int fixed = Math.max(0, node.children.size() - 1) * node.gap;
         int flexible = 0;
@@ -559,39 +573,43 @@ public final class Ui {
             int requested = node.horizontal ? child.width : child.height;
             if (requested < 0) flexible++; else fixed += requested;
         }
+        if (node.horizontal) fixed += flexible * node.minChildWidth;
         int remaining = Math.max(0, available - fixed);
         int cursor = node.horizontal ? inner.x : inner.y;
         if (node.scroll != null) {
-            node.scroll.max = Math.max(0, fixed - available);
-            node.scroll.offset = Math.max(0, Math.min(node.scroll.offset, node.scroll.max));
+            node.scroll.range(fixed, available);
             cursor -= node.scroll.offset;
             if (!paintingPreview) {
-                scrolls.add(new ScrollHit(box.inset(node.padding).intersect(clip), node.scroll));
-                if (enabled) cardDrag.panZone(node.scroll, inner.intersect(clip));
+                scrolls.add(new ScrollHit(box.inset(node.padding).intersect(clip), node.scroll, node.horizontal));
+                if (enabled) cardDrag.panZone(node.scroll, inner.intersect(clip), node.horizontal);
             }
         }
         Box childClip = inner.intersect(clip);
         for (Node child : node.children) {
             int requested = node.horizontal ? child.width : child.height;
             int size = requested;
-            if (size < 0) { size = remaining / flexible; remaining -= size; flexible--; }
+            if (size < 0) { int share = remaining / flexible; remaining -= share; flexible--; size = share + (node.horizontal ? node.minChildWidth : 0); }
             Box childBox = node.horizontal
                 ? new Box(cursor, inner.y, size, child.height < 0 ? inner.h : child.height)
                 : new Box(inner.x, cursor, child.width < 0 ? inner.w : child.width, size);
             render(child, childBox, childClip, scopeHovered, enabled);
             cursor += size + node.gap;
         }
-        if (node.scroll != null && node.scroll.max > 0 && inner.h > 0) {
+        int extent = node.horizontal ? inner.w : inner.h;
+        if (node.scroll != null && node.scroll.max > 0 && extent > 0) {
             scissor(box.inset(node.padding).intersect(clip));
-            int thumb = Math.min(inner.h, Math.max(15, inner.h * inner.h / (inner.h + node.scroll.max)));
-            int top = inner.y + (inner.h - thumb) * node.scroll.offset / node.scroll.max;
-            skin.surface(MinecraftSkin.Surface.INSET, inner.x + inner.w + 2, inner.y, 6, inner.h);
-            skin.thumb(inner.x + inner.w + 2, top, 6, thumb);
-            Box track = new Box(inner.x + inner.w + 1, inner.y, 7, inner.h);
+            int thumb = Math.min(extent, Math.max(15, extent * extent / (extent + node.scroll.max)));
+            int start = (node.horizontal ? inner.x : inner.y) + (extent - thumb) * node.scroll.offset / node.scroll.max;
+            Box track = node.horizontal ? new Box(inner.x, inner.y + inner.h + 1, inner.w, 7)
+                : new Box(inner.x + inner.w + 1, inner.y, 7, inner.h);
+            skin.surface(MinecraftSkin.Surface.INSET, track.x, track.y, track.w, track.h);
+            if (node.horizontal) skin.thumb(start, track.y, thumb, track.h);
+            else skin.thumb(track.x, start, track.w, thumb);
             if (!paintingPreview) hits.add(new Hit(track.intersect(clip), () -> {
-                int grab = mouseY >= top && mouseY < top + thumb ? mouseY - top : thumb / 2;
-                dragging = new ScrollDrag(node.scroll, track, thumb, grab);
-                dragging.move(mouseY);
+                int position = node.horizontal ? mouseX : mouseY;
+                int grab = position >= start && position < start + thumb ? position - start : thumb / 2;
+                dragging = new ScrollDrag(node.scroll, track, thumb, grab, node.horizontal);
+                dragging.move(mouseX, mouseY);
             }, false));
         }
         if (!paintingPreview && cardDrag.isSource(node.dragPayload)) {
@@ -608,6 +626,10 @@ public final class Ui {
                 Gui.drawRect(box.x, box.y + box.h - 2, box.x + box.w, box.y + box.h, color);
             }
         }
+    }
+
+    private static Box scrollContent(Box box, boolean horizontal) {
+        return new Box(box.x, box.y, Math.max(0, box.w - (horizontal ? 0 : 8)), Math.max(0, box.h - (horizontal ? 8 : 0)));
     }
 
     private void scissor(Box box) {
@@ -627,6 +649,8 @@ public final class Ui {
         private int max;
         public void reset() { offset = 0; }
         public void end() { offset = Integer.MAX_VALUE; }
+        void range(int content, int viewport) { max = Math.max(0, content - viewport); offset = Math.max(0, Math.min(offset, max)); }
+        int position() { return offset; }
         void nudge(int delta) { offset = Math.max(0, Math.min(max, offset + delta)); }
         void reveal(int top, int bottom, int viewport) {
             if (top < offset) offset = top;
@@ -637,7 +661,7 @@ public final class Ui {
     public static final class Node {
         private final boolean horizontal;
         private final int gap;
-        private int width = -1, height = -1, padding, background;
+        private int width = -1, height = -1, padding, background, minChildWidth;
         private int left, top;
         private boolean absolute, interactive = true;
         private Painter painter;
@@ -655,6 +679,8 @@ public final class Ui {
         private Node(boolean horizontal, int gap) { this.horizontal = horizontal; this.gap = gap; }
         public Node width(int value) { width = value; return this; }
         public Node height(int value) { height = value; return this; }
+        /** Flexible row children retain readable widths; use scroll() to reach overflow. */
+        public Node minChildWidth(int value) { minChildWidth = Math.max(0, value); return this; }
         public Node interactive(boolean value) { interactive = value; return this; }
         public Node at(int x, int y) { left = x; top = y; return this; }
         public int preferredHeight() { return height; }
@@ -713,18 +739,22 @@ public final class Ui {
     private static final class ScrollHit {
         final Box box;
         final Scroll scroll;
-        ScrollHit(Box box, Scroll scroll) { this.box = box; this.scroll = scroll; }
+        final boolean horizontal;
+        ScrollHit(Box box, Scroll scroll, boolean horizontal) { this.box = box; this.scroll = scroll; this.horizontal = horizontal; }
     }
     private static final class ScrollDrag {
         final Scroll scroll;
         final Box track;
         final int thumb, grab;
-        ScrollDrag(Scroll scroll, Box track, int thumb, int grab) {
+        final boolean horizontal;
+        ScrollDrag(Scroll scroll, Box track, int thumb, int grab, boolean horizontal) {
             this.scroll = scroll; this.track = track; this.thumb = thumb; this.grab = grab;
+            this.horizontal = horizontal;
         }
-        void move(int mouseY) {
-            int travel = track.h - thumb;
-            if (travel > 0) scroll.offset = Math.max(0, Math.min(scroll.max, (mouseY - track.y - grab) * scroll.max / travel));
+        void move(int mouseX, int mouseY) {
+            int travel = (horizontal ? track.w : track.h) - thumb;
+            int position = horizontal ? mouseX - track.x : mouseY - track.y;
+            if (travel > 0) scroll.offset = Math.max(0, Math.min(scroll.max, (position - grab) * scroll.max / travel));
         }
     }
     static final class Box {

@@ -1,11 +1,38 @@
-# Foundation verification — 2026-10-25
+# Verification record
 
-> Current backend/UI revision: world-file persistence, roles, real-time task sync,
-> workflow graphs/schemes, project/sprint/board administration and new domain,
-> persistence and synchronization tests were added after the foundation evidence
-> below. The assistant has not compiled, built, linted, run tests or inspected this
-> revision in-game. The user owns all verification under `AGENTS.md`; commands and
-> multiplayer/restart acceptance steps are in [the backend guide](backend.md).
+## Release preparation — 2026-10-25
+
+The current workspace, UI, and both integration addons passed the local release
+build with Temurin 25.0.4.1+1 (Gradle/core), Java 8u504 (Forge), and Java 17.0.17
+(decompiler):
+
+```powershell
+.\gradlew.bat -PmiraIntegrations=true check build checkIntegrations assembleIntegrations --no-daemon --console=plain --max-workers=2
+.\scripts\verify-core-boundary.ps1
+python scripts/package-release.py --tag v0.1.0
+```
+
+- **118 tests passed:** core 23, platform 81, MCP addon 10, Harness addon 4;
+  zero failures, errors, or skips.
+- Final mod/addon metadata and jar contents passed verification, including the
+  separately compiled core embedding fixture and exclusion of forbidden classes.
+- All 14 negative core-boundary controls failed for the intended isolation reason;
+  allowed-test-dependency and final clean core checks passed.
+- The release packager validated seven jars and produced a distribution ZIP,
+  notices, installation instructions, and SHA-256 manifest.
+- The Markdown image regression tests cover consent before network scheduling
+  and rejection of insecure/file URL schemes.
+- GitHub Build runs separate core controls plus standalone and integration builds.
+  Hosted results are available from [Actions](https://github.com/sorivma/mira/actions);
+  only a green run for the published commit is evidence for that commit.
+
+No game, live MCP backend, GUI, or full GTNH smoke was launched during this
+release preparation. The earlier foundation runtime evidence below applies only
+to that earlier minimal bootstrap. Current multiplayer behavior, visual interaction,
+and full-pack client/server compatibility still require the manual checklists in
+[backend.md](backend.md), [ui.md](ui.md), and [integrations.md](integrations.md).
+
+## Historical foundation evidence — 2026-10-25
 
 The initial runtime baseline is **plain Minecraft 1.7.10 + Forge 1614 + Mira
 only**, per the user's implementation direction. No Prism or desktop automation
@@ -107,7 +134,8 @@ Logs are preserved under `.work/smoke-evidence/` and
   initialization error. Loading and client/server connection succeeded despite
   these. No missing class or exception naming Mira was observed. Audio is not
   validated; no claim of an entirely error-free vanilla log is made.
-- CI workflow was added, but no hosted CI run was triggered from this session.
+- At the time of the foundation checks, no hosted CI run had been triggered.
+  Current release CI evidence is linked above.
 - Minimal Forge on Java 8 does **not** establish GTNH compatibility. GTNH
   2.9.0-RC-2 client/server smokes on Java 21 remain unrun/deferred. The exact
   archives and hashes are recorded in [the baseline](build-baseline.md).

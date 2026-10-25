@@ -359,6 +359,15 @@ final class WorkspaceSession {
         if (issue == null) { notice = "Unknown issue: " + key; return; }
         project(issue.project.name); select(issue);
     }
+    void openTask(String id) {
+        if (draft != null || documentDraft != null || saving()) { notice = "Finish the current edit before opening another task"; return; }
+        if (remote == null) return;
+        Model.Entity task = remote.state.require(id, Model.Kind.TASK);
+        remote.switchWorkspace(task.workspace);
+        Issue issue = data.issues.stream().filter(value -> value.id.equals(id)).findFirst().orElse(null);
+        if (issue == null) { notice = "Task is unavailable or archived"; return; }
+        project(issue.project.name); select(issue);
+    }
     Boolean issueDone(String key) {
         if (remote != null) return remote.done(key);
         return data.issues.stream().filter(value -> value.key.equalsIgnoreCase(key)).map(value -> value.status.done()).findFirst().orElse(null);

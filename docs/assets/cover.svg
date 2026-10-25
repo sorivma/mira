@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="460" viewBox="0 0 1280 460" role="img" aria-labelledby="title description">
+<title id="title">Mira — the workspace inside your world</title>
+<desc id="description">A dark blueprint-style cover with an abstract voxel landscape and a three-column task board. This is an illustration, not a game screenshot.</desc>
+<defs>
+  <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse"><path d="M32 0H0V32" fill="none" stroke="#24332f" stroke-width="1"/></pattern>
+  <linearGradient id="fade" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#162c27"/><stop offset="1" stop-color="#101b1c"/></linearGradient>
+  <filter id="shadow"><feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000" flood-opacity=".22"/></filter>
+</defs>
+<rect width="1280" height="460" rx="20" fill="#101b1c"/>
+<rect x="520" width="760" height="460" fill="url(#grid)" opacity=".55"/>
+<path d="M0 389H72v-22h64v22h68v-54h68v24h64v30h80v-10h76v81H0Z" fill="#1e3630"/>
+<path d="M0 426h104v-19h71v19h93v-14h88v14h98v34H0Z" fill="#28483a"/>
+<rect x="56" y="60" width="38" height="38" rx="8" fill="#69cfb0"/>
+<path d="M65 88V70l10 11 10-11v18" fill="none" stroke="#10251e" stroke-width="4" stroke-linejoin="round"/>
+<text x="108" y="85" fill="#93b0a5" font-family="Segoe UI,Arial,sans-serif" font-size="15" font-weight="600" letter-spacing="4">WORLD / WORKSPACE</text>
+<text x="52" y="194" fill="#eef2df" font-family="Segoe UI,Arial,sans-serif" font-size="94" font-weight="700" letter-spacing="-4">Mira</text>
+<text x="57" y="244" fill="#eef2df" font-family="Segoe UI,Arial,sans-serif" font-size="26">The workspace</text>
+<text x="57" y="280" fill="#eef2df" font-family="Segoe UI,Arial,sans-serif" font-size="26">inside your world.</text>
+<text x="58" y="328" fill="#93b0a5" font-family="Segoe UI,Arial,sans-serif" font-size="15">PLAN TOGETHER. KEEP BUILDING.</text>
+<g transform="translate(534 58)" filter="url(#shadow)">
+  <rect width="690" height="342" rx="12" fill="url(#fade)" stroke="#476354"/>
+  <path d="M0 53H690" stroke="#3a5147"/>
+  <circle cx="24" cy="26" r="5" fill="#69cfb0"/>
+  <text x="40" y="32" fill="#e7efdc" font-family="Segoe UI,Arial,sans-serif" font-size="16" font-weight="600">The next great build</text>
+  <rect x="560" y="14" width="109" height="26" rx="5" fill="#2d4a3f"/>
+  <text x="575" y="32" fill="#98d9bd" font-family="Segoe UI,Arial,sans-serif" font-size="12">TEAM BOARD</text>
+  <g font-family="Segoe UI,Arial,sans-serif">
+    <text x="23" y="86" fill="#a2b9ac" font-size="12" font-weight="600" letter-spacing="2">PLANNED</text>
+    <text x="248" y="86" fill="#d7bb82" font-size="12" font-weight="600" letter-spacing="2">BUILDING</text>
+    <text x="474" y="86" fill="#86d0ae" font-size="12" font-weight="600" letter-spacing="2">COMPLETE</text>
+    <rect x="20" y="102" width="200" height="111" rx="7" fill="#253b35" stroke="#3b5648"/>
+    <rect x="245" y="102" width="200" height="147" rx="7" fill="#293c33" stroke="#937c49"/>
+    <rect x="470" y="102" width="200" height="111" rx="7" fill="#234137" stroke="#497a60"/>
+    <text x="35" y="126" fill="#8ba798" font-size="11">BASE-08</text>
+    <text x="35" y="153" fill="#ecf0dd" font-size="17" font-weight="600">Expand the workshop</text>
+    <rect x="35" y="174" width="96" height="5" rx="2" fill="#4d6556"/>
+    <rect x="35" y="174" width="28" height="5" rx="2" fill="#8ba798"/>
+    <text x="35" y="198" fill="#91aa9b" font-size="11">3 tasks ready</text>
+    <text x="260" y="126" fill="#c2ab77" font-size="11">BASE-06</text>
+    <text x="260" y="153" fill="#ecf0dd" font-size="17" font-weight="600">Power the next tier</text>
+    <rect x="261" y="175" width="10" height="10" rx="2" fill="#d6b76d"/>
+    <path d="m263 180 2 2 4-5" fill="none" stroke="#2a3b31" stroke-width="1.5"/>
+    <text x="280" y="184" fill="#b2c4b3" font-size="12">Materials collected</text>
+    <rect x="261" y="197" width="10" height="10" rx="2" fill="none" stroke="#8d9f83"/>
+    <text x="280" y="206" fill="#b2c4b3" font-size="12">Wire the machines</text>
+    <rect x="260" y="227" width="167" height="4" rx="2" fill="#495941"/>
+    <rect x="260" y="227" width="94" height="4" rx="2" fill="#d6b76d"/>
+    <text x="485" y="126" fill="#8bcfa9" font-size="11">BASE-04</text>
+    <text x="485" y="153" fill="#ecf0dd" font-size="17" font-weight="600">A home for the team</text>
+    <circle cx="491" cy="185" r="7" fill="#69cfb0"/>
+    <path d="m488 185 2 2 4-5" fill="none" stroke="#193c2b" stroke-width="1.8"/>
+    <text x="506" y="189" fill="#98b8a0" font-size="12">Built together</text>
+    <rect x="20" y="227" width="200" height="63" rx="7" fill="#20362f" stroke="#355344" stroke-dasharray="4 4"/>
+    <text x="36" y="264" fill="#7c9a87" font-size="14">+ The next idea</text>
+    <path d="M20 312H670" stroke="#395447"/>
+    <text x="22" y="332" fill="#819e8d" font-size="11">IN-GAME TASKS</text>
+    <text x="254" y="332" fill="#819e8d" font-size="11">SHARED PROGRESS</text>
+    <text x="491" y="332" fill="#819e8d" font-size="11">YOUR WORLD</text>
+  </g>
+</g>
+</svg>

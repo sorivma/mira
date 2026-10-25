@@ -2,10 +2,11 @@
   {
     "modid": "mira",
     "name": "Mira",
-    "description": "Collaborative tasks and workflows. Foundation bootstrap only.",
+    "description": "Collaborative boards, task documents and workflows inside your Minecraft world.",
     "version": "${version}",
     "mcversion": "1.7.10",
-    "authorList": [],
+    "url": "https://github.com/sorivma/mira",
+    "authorList": ["sorivma"],
     "dependencies": []
   }
 ]

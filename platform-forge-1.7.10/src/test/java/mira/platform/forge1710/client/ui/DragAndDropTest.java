@@ -96,4 +96,36 @@ public class DragAndDropTest {
         assertFalse(drag.external(64, 60, 60)); // A mutation invalidates targets until the next frame.
         assertFalse(drag.pressed());
     }
+
+    @Test
+    public void columnUnderPointerDoesNotPreventHorizontalBoardPanning() {
+        Ui.Scroll board = new Ui.Scroll(), column = new Ui.Scroll();
+        board.range(600, 200); column.range(600, 200);
+        press();
+        drag.beginFrame(195, 100);
+        drag.panZone(board, new Box(0, 0, 200, 200), true);
+        drag.panZone(column, new Box(140, 0, 60, 200), false);
+        drag.tick();
+        assertEquals(8, board.position());
+        assertEquals(0, column.position());
+        assertTrue(actions.isEmpty());
+    }
+
+    @Test
+    public void boardAndColumnCanPanTogetherAtACornerAndStopAfterCancel() {
+        Ui.Scroll board = new Ui.Scroll(), column = new Ui.Scroll();
+        board.range(600, 200); column.range(600, 200);
+        press();
+        drag.beginFrame(195, 195);
+        drag.panZone(board, new Box(0, 0, 200, 200), true);
+        drag.panZone(column, new Box(140, 0, 60, 200), false);
+        drag.tick();
+        assertEquals(8, board.position());
+        assertEquals(8, column.position());
+        drag.cancel();
+        drag.tick();
+        assertEquals(8, board.position());
+        assertEquals(8, column.position());
+        assertTrue(actions.isEmpty());
+    }
 }

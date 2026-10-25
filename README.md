@@ -1,165 +1,133 @@
-# Mira
+<p align="center">
+  <img src="docs/assets/cover.svg" alt="Mira — the workspace inside your world" width="100%">
+</p>
 
-Minecraft 1.7.10 / Forge foundation for collaborative tasks, workflows, and
-boards, targeting GT New Horizons **2.9.0-RC-2**. Workspaces contain multiple
-projects, with server-owned roles, workflows and a database stored in the world.
-Saved changes synchronize immediately with connected players. Full-pack
-compatibility status is in [verification](docs/verification.md).
+<p align="center">
+  <a href="https://github.com/sorivma/mira/actions/workflows/build.yml"><img src="https://github.com/sorivma/mira/actions/workflows/build.yml/badge.svg" alt="Build"></a>
+  <a href="https://github.com/sorivma/mira/releases"><img src="https://img.shields.io/github/v/release/sorivma/mira?color=53bda5" alt="Latest release"></a>
+  <img src="https://img.shields.io/badge/Minecraft-1.7.10-7fa663" alt="Minecraft 1.7.10">
+  <img src="https://img.shields.io/badge/Forge-1614-cba35d" alt="Forge 1614">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-8b96bc" alt="MIT license"></a>
+</p>
 
-## Workspace UI
+<p align="center">
+  <b>Plan the next machine. Share the work. Stay in the world.</b><br>
+  Collaborative boards, task documents, workflows, and an optional bridge to your agents.
+</p>
 
-Enter a world and press **J** to open Mira. Rebind it under **Controls > Mira**.
-The workspace has Board, Backlog, and Issues views, project switching, search,
-assignee/sprint selectors, issue details, creation/editing, and comments.
-Board cards support dragging between statuses and reordering; on a narrow GUI,
-drop onto a status tab to move a card there. Click a card to open its details.
-Assignees show a skin face beside their nickname. Use **C**/**Ctrl+N** for a new
-issue, **Enter** to create it, **Ctrl+Enter** to create and keep adding, and the
-column's **+** to start in that status. Optional fields expand on demand.
-The description combines Markdown text with ordered checklist, materials,
-location and blocker widgets in one block document. Click text or a widget to
-edit; use a **+** insertion gap or **/** to insert anywhere. **Enter** splits a
-paragraph, **Shift+Enter** inserts a line break. Drag a **::** gutter handle to
-reorder blocks, or use **^/v** in the shared toolbar. **Save / Ctrl+Enter** commits
-the whole description; **Cancel / Escape** discards it. Switching blocks retains
-unfinished edits. The full issue form uses the same document editor. Materials track
-your carried inventory, including supported backpacks, without consuming items.
-With GTNH NEI installed, the workspace reserves the right panel for it: drag an
-item onto the body to add a requirement, or onto a material to add an alternative.
-NEI is optional and is not embedded. Without it, edit Materials and use **Held item**.
-The window reuses Minecraft's inventory frames, creative tabs, buttons,
-item icons, tooltips, and click sound; active resource packs supply the textures.
-Descriptions and text blocks support Markdown source/preview, headings, formatted
-text, lists, quotes, links, code, tables, task lists and images. Formatting tools
-work on selected text. Templates speed up common tasks. Use Undo/**Ctrl+Z** for
-saved actions, and Pin for a HUD tracker. Cards show three title lines and progress.
-Create a private workspace under **Settings > Workspaces**, then grant players
-Viewer or Editor access under **People & access**. The creator is its Owner; ownership
-can be transferred. Projects inherit workspace permissions. Settings also manage
-projects, sprints, custom issue types, workflow graphs and schemes, board columns,
-archives and activity. Owners configure workflows; Editors manage projects and
-tasks. Server operators have explicit audited recovery commands.
+<p align="center">
+  <a href="https://github.com/sorivma/mira/releases/latest">Download</a> ·
+  <a href="docs/user-guide.md">User guide</a> ·
+  <a href="docs/integrations.md">Integrations</a> ·
+  <a href="CONTRIBUTING.md">Contribute</a> ·
+  <a href="README.ru.md">Русский</a>
+</p>
 
-Saved changes are persisted before acknowledgment and pushed to authorized players.
-Different task fields or description blocks merge independently; conflicting edits
-retain the local draft and offer **Keep my edits** or **Reload saved**. Comments
-append independently. Undo checks for later edits before reversing your own changes.
-Draft typing stays local. Tasks and projects are archived and can be restored.
-Inventory observations remain a separate read-only service. Plain Forge needs no
-extra runtime mod or external database. See the [backend guide](docs/backend.md)
-for storage, the synchronized API, workflow publication, recovery and verification.
+## A workspace that lives with your world
 
-The [UI guide](docs/ui.md) explains the feature modules, fluent composition,
-controls, and manual acceptance steps. The user owns builds, automated tests,
-and runtime verification under [AGENTS.md](AGENTS.md).
+Mira is a Forge mod for Minecraft **1.7.10**. Press **J** to open your team's
+workspace: a board for the next build, a backlog for future plans, and a shared
+record of what is done. The server owns permissions and saves the database
+inside the world; no external database or service is required.
 
-## Setup on Windows
+| Plan | Collaborate | Connect |
+| --- | --- | --- |
+| Boards, backlog, issues, sprints, search, and templates | Private workspaces, Owner / Editor / Viewer roles, comments, and live updates | Optional MCP task tools and live cards in Minecraft Harness |
+| Drag cards between statuses; design your own workflow | Field-level conflict handling, durable saves, archive/restore, and guarded undo | Markdown, checklists, material requirements, locations, and blockers |
+| Pin a task to the HUD and keep building | Projects inherit workspace permissions | Optional NEI item picker; held-item entry works without NEI |
 
-Install Temurin JDK **25.0.4.1+1** for Gradle/core compilation and JDK
-**8u504-b01** for Forge compilation and minimal development runs, plus JDK
-**17.0.17+10** for RFG's decompiler. Full GTNH
-smokes use Java **21.0.10+7**. Core is compiled with `--release 8`; platform
-uses a Java 8 compiler. See [exact baseline and downloads](docs/build-baseline.md).
+Remote Markdown images wait for a click and confirmation before downloading.
+Resource-pack images stay local. Full controls and editing behavior are in the
+[user guide](docs/user-guide.md) and [UI guide](docs/ui.md).
 
-In PowerShell at the repository root, substitute your installation paths:
+## Install
+
+1. Download `mira-0.1.0.jar` from [Releases](https://github.com/sorivma/mira/releases).
+2. Place it in `mods/` on the **client and server** running Minecraft 1.7.10
+   with Forge 10.13.4.1614.
+3. Enter the world and press **J**. Create a workspace, then invite players under
+   **Settings → Access**.
+
+The base mod is self-contained. Do not install `-dev.jar`, `mira-core-*.jar`,
+or fixture jars in a game. The ZIP also contains optional integrations and
+developer artifacts: follow its `INSTALLATION.md` before copying files.
+
+**Compatibility:** built for Forge 1.7.10, with GT New Horizons 2.9.0-RC-2 as a
+target pack. Automated checks cover domain rules, synchronization helpers, and
+final jar contents. Full-pack client/server acceptance remains separate;
+see the [verification record](docs/verification.md).
+
+## Choose your integrations
+
+| Artifact | Requires | Adds |
+| --- | --- | --- |
+| `mira-0.1.0.jar` | Forge | Complete collaborative workspace |
+| `mira-agent-tools-1.7.10-0.1.0.jar` | Mira + [Minecraft Agent Tools](https://github.com/sorivma/minecraft-agent-tools) | Eleven `mira_*` tools for scoped task reads and permission-checked writes |
+| `mira-harness-1.7.10-0.1.0.jar` | Mira + [Minecraft Harness](https://github.com/sorivma/minecraft-harness) | Live task cards with an **Open Mira** action |
+
+The addons are optional client integrations. The MCP addon is copied to both
+`mods/` and `config/minecraftagenttools/plugins/`. Harness cards work without
+the MCP addon. See the [installation matrix](docs/release-installation.md) and
+[full integration guide](docs/integrations.md).
+
+## Build
+
+Use the checked-in **Gradle 9.5.0** wrapper. Gradle and core compilation use
+**JDK 25**; Forge compiles with **JDK 8** and its decompiler uses **JDK 17**.
+Every production class targets Java 8.
 
 ```powershell
-$env:JAVA_HOME = 'C:\Java\jdk-25.0.4.1+1'
-$env:MIRA_JAVA8_HOME = 'C:\Java\jdk8u504-b01'
-$env:MIRA_JAVA17_HOME = 'C:\Java\jdk-17.0.17+10'
-.\gradlew.bat --version
+$env:JAVA_HOME = 'C:\Java\jdk-25'
+$env:MIRA_JAVA8_HOME = 'C:\Java\jdk-8'
+$env:MIRA_JAVA17_HOME = 'C:\Java\jdk-17'
 .\gradlew.bat :core:check
-.\gradlew.bat check
-.\gradlew.bat build
+.\gradlew.bat check build
 ```
 
-Only JDK 25 is needed for `:core:check`. The wrapper pins Gradle 9.5.0 and its
-download checksum; do not install a global Gradle. Configuration on demand is
-intentional: `:core:check` does not configure the game plugin, download game
-artifacts, decompile Minecraft, fetch assets, or start a game. The full build
-does prepare Forge's development workspace on its first run. No pack-specific
-build conventions are required.
-
-Install **only** `platform-forge-1.7.10\build\libs\mira-0.1.0.jar` in `mods\`.
-The final jar embeds the core before reobfuscation. Do not install `-dev.jar`,
-the standalone core jar, or anything in `build\fixtures\`.
-
-## Conventional development instance
+The core check needs only JDK 25 and does not configure Forge or download game
+artifacts. To build the addons using verified APIs from the sibling projects'
+`v0.1.0` releases:
 
 ```powershell
-.\gradlew.bat :platform-forge-1.7.10:setupDecompWorkspace
-.\gradlew.bat :platform-forge-1.7.10:runClient
-.\gradlew.bat :platform-forge-1.7.10:runServer
-# Test reobfuscated output in a minimal Forge environment:
-.\gradlew.bat :platform-forge-1.7.10:runObfClient
-.\gradlew.bat :platform-forge-1.7.10:runObfServer
+python scripts/fetch-integration-apis.py
+$integrationArgs = Get-Content .work/integration-apis/gradle-args.txt
+.\gradlew.bat @integrationArgs check checkIntegrations assembleIntegrations
+python scripts/package-release.py
 ```
 
-Setup is optional before a build: RFG wires its prerequisites automatically.
-The development instance is `platform-forge-1.7.10\run\`, with the usual
-`mods\`, `config\`, `logs\`, and `saves\` directories created as needed by
-Minecraft. Mira itself loads from the development classpath. Client and server
-use the standard shared instance root; obfuscated runs use
-`run\obfuscated\`. Run one game process per instance at a time. All are ignored by
-Git and preserved by `clean`. Review/accept the server's EULA prompt yourself
-on first use. Development tasks run Java 8 and minimal Forge; the complete
-modern-Java GTNH distribution is tested separately.
+Python 3 and GitHub CLI are needed for the release helper scripts. The
+[build baseline](docs/build-baseline.md) records exact JDK selections;
+[Contributing](CONTRIBUTING.md) explains development checks.
 
-## Verification
+## Architecture
 
-`check` verifies core isolation, final mod contents, and a separately compiled
-class-embedding fixture after reobfuscation. Production core contains workspace/task
-rules, permissions, workflows, transactions, typed task bodies, matching and inventory allocation. The independent
-fixture also exercises embedding. [Architecture and ownership](docs/architecture.md)
-explain the seam.
-
-```powershell
-.\scripts\verify-core-boundary.ps1
+```mermaid
+flowchart LR
+    Core["JDK-only domain core"] --> Forge["Mira · Forge 1.7.10"]
+    Forge --> UI["Boards · documents · HUD"]
+    Forge --> Store["Server-owned world database"]
+    MCP["Optional Agent Tools addon"] --> Forge
+    Harness["Optional Harness addon"] --> Forge
 ```
 
-The script temporarily exercises forbidden references, compiled constants,
-project/module/file dependencies, inherited dependencies, and direct classpath
-files. It removes controls in `finally` and reruns clean core checks. Logs go
-to `.work\boundary-controls\`. CI runs independent core verification and full
-assembly in separate jobs using the pinned JDK selections.
+The domain core owns transactions, permissions, workflows, and task bodies.
+The Forge layer supplies storage, networking, inventory observation, and UI.
+Addons use the existing backend; they do not create a second task database.
 
-To repeat the independent check with an empty Gradle user home and clean core
-outputs (this also downloads the checksum-verified wrapper distribution):
+| Read next | |
+| --- | --- |
+| [Architecture](docs/architecture.md) | Module boundaries and dedicated-server-safe loading |
+| [Backend](docs/backend.md) | Persistence, permissions, synchronization, recovery |
+| [Versioning](VERSIONING.md) | Compatibility promises and release procedure |
+| [Changelog](CHANGELOG.md) | What changed |
+| [Security](SECURITY.md) | Trust boundaries and private reporting |
 
-```powershell
-$isolatedHome = Join-Path $PWD ('.work\gradle-core-' + [guid]::NewGuid())
-.\gradlew.bat --gradle-user-home $isolatedHome :core:clean :core:check --info
-```
+## Community and license
 
-## Initial smoke: plain Forge with only Mira
+Use [issues](https://github.com/sorivma/mira/issues) for reproducible bugs and
+feature proposals, or [Discussions](https://github.com/sorivma/mira/discussions)
+for setup and workflow questions.
 
-Use `runClient` / `runServer` above for ordinary development. Use
-`runObfClient` / `runObfServer` to test the actual installable jar with Forge
-1614 and Minecraft 1.7.10. No launcher, Prism instance, GTNH installation, or
-other mod is required. RFG copies Mira to `run\obfuscated\mods\` automatically.
-Wait for `Mira initialized` and FML's successful mod loading message. On a
-server, wait for `Done (...)!` and enter `stop` to save and shut down. On a
-client, create a disposable singleplayer world and quit normally. Use the
-generated `run\...\logs\` for evidence. Server EULA prompts remain interactive.
-
-Full-pack smokes are deferred; the first test baseline is plain Forge + Mira.
-
-## Later GTNH smoke procedure
-
-1. Download the exact client/server archives linked in the baseline. Verify
-   `Get-FileHash -Algorithm SHA256 <archive>` against the recorded hashes.
-2. Import the client ZIP into a **new disposable** Prism instance. Select Java
-   21.0.10+7, give it the pack's recommended memory, and copy only the final
-   Mira jar into that instance's `.minecraft\mods\`. Keep existing instances,
-   accounts, and worlds intact.
-3. Launch, confirm Mira appears in the mod list and `Mira initialized` appears
-   in `logs\fml-client-latest.log`. Create/load a disposable world, wait for
-   world entry, then quit normally. Check for missing classes and new
-   Mira-related errors. Record the jar hash, runtime, pack, and log evidence.
-4. Extract the matching server ZIP into a separate disposable directory. Copy
-   the **same** mod jar into `mods\`. Select the same Java 21 executable in
-   the provided start script, review the EULA, then start the server and wait
-   for `Done (...)!`. Stop with `stop`. Confirm the initialization marker and
-   absence of Mira-related exceptions or client-class loading failures.
-5. Record evidence in `docs/verification.md`. Keep unavailable smokes incomplete.
-   A successful build or minimal Forge run does not prove full GTNH compatibility.
+Mira is [MIT licensed](LICENSE). Bundled dependencies retain their own
+[notices](THIRD_PARTY_NOTICES.md). This is an independent community project,
+not an official Minecraft, Mojang, Microsoft, or GT New Horizons product.

@@ -1,0 +1,12 @@
+[
+  {
+    "modid": "miraharness",
+    "name": "Mira Harness Tasks",
+    "description": "Live Mira task cards in Minecraft Harness chat.",
+    "version": "${version}",
+    "mcversion": "1.7.10",
+    "url": "https://github.com/sorivma/mira",
+    "authorList": ["sorivma"],
+    "dependencies": ["mira", "minecraftharness"]
+  }
+]

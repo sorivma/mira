@@ -3,3 +3,9 @@
 **/build/
 **/run/
 
+.idea/
+.codex/
+*.iml
+*.bak
+.DS_Store
+

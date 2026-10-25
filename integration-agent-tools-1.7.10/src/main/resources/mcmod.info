@@ -1,0 +1,12 @@
+[
+  {
+    "modid": "minecraftagenttoolsmira",
+    "name": "Mira Agent Tools",
+    "description": "Optional MCP task tools and live task-card references for Mira.",
+    "version": "${version}",
+    "mcversion": "1.7.10",
+    "url": "https://github.com/sorivma/mira",
+    "authorList": ["sorivma"],
+    "dependencies": ["mira"]
+  }
+]

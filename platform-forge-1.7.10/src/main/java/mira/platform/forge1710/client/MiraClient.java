@@ -15,11 +15,19 @@ import cpw.mods.fml.common.network.FMLNetworkEvent;
 import net.minecraftforge.common.MinecraftForge;
 import mira.platform.forge1710.client.workspace.PinnedTaskHud;
 import mira.platform.forge1710.client.workspace.JiraClient;
+import mira.platform.forge1710.client.workspace.MiraClientAccess;
 
 /** The only lifecycle path that resolves Minecraft client classes. */
 public final class MiraClient extends CommonProxy {
     private final KeyBinding open = new KeyBinding("key.mira.open", Keyboard.KEY_J, "key.categories.mira");
-    private WorkspaceScreen workspace;
+    private static WorkspaceScreen workspace;
+
+    /** Reuse the existing session/listener and retain any local draft when an integration opens Mira. */
+    public static void openTask(String taskId) {
+        if (workspace == null) workspace = new WorkspaceScreen();
+        Minecraft.getMinecraft().displayGuiScreen(workspace);
+        workspace.openTask(taskId);
+    }
 
     @Override
     public void initialize() {
@@ -39,7 +47,7 @@ public final class MiraClient extends CommonProxy {
         }
     }
     @SubscribeEvent public void tick(TickEvent.ClientTickEvent event) {
-        if (event.phase == TickEvent.Phase.END) { JiraClient.update(); if (PinnedTaskHud.active()) InventoryClient.update(); }
+        if (event.phase == TickEvent.Phase.END) { JiraClient.update(); MiraClientAccess.scope(); if (PinnedTaskHud.active()) InventoryClient.update(); }
     }
     @Override public void receiveJira(Object connection, byte[] reply) { JiraClient.receive(connection, reply); }
     @SubscribeEvent public void disconnected(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {

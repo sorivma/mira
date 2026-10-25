@@ -15,6 +15,8 @@ import static mira.platform.forge1710.client.ui.Ui.*;
 final class WorkspaceShell {
     private final WorkspaceSession session;
     private final Runnable close;
+    private final Runnable toggleItems;
+    private final java.util.function.BooleanSupplier itemsVisible;
     private final BoardView board;
     private final BacklogView backlog;
     private final IssueListView issues;
@@ -24,9 +26,12 @@ final class WorkspaceShell {
     private final WorkspaceSettingsView settings;
     private boolean managing;
 
-    WorkspaceShell(WorkspaceSession session, FontRenderer font, Runnable close) {
+    WorkspaceShell(WorkspaceSession session, FontRenderer font, Runnable close, Runnable toggleItems,
+            java.util.function.BooleanSupplier itemsVisible) {
         this.session = session;
         this.close = close;
+        this.toggleItems = toggleItems;
+        this.itemsVisible = itemsVisible;
         board = new BoardView(session);
         backlog = new BacklogView(session);
         issues = new IssueListView(session);
@@ -74,8 +79,7 @@ final class WorkspaceShell {
         if (session.selected() != null && !inspector) {
             body.add(details.build(workWidth, false, () -> edit(ui), ui));
         } else {
-            int contentWidth = workWidth - (inspector ? 266 : 0);
-            body.add(session.view() == View.BOARD ? board.build(contentWidth, status -> create(ui, status), ui)
+            body.add(session.view() == View.BOARD ? board.build(status -> create(ui, status), ui)
                 : session.view() == View.BACKLOG ? backlog.build() : issues.build());
             if (inspector) body.add(details.build(260, true, () -> edit(ui), ui).width(260));
         }
@@ -87,14 +91,19 @@ final class WorkspaceShell {
 
     private Node navigation(int width) {
         Node tabs = row(3).height(28);
-        if (settingsOpen() || session.saving()) return tabs.add(tab(settingsOpen() ? "Workspace settings" : "Saving", new ItemStack(Items.book), true, null).width(Math.min(160, width)), space());
-        if (session.draft() != null) return tabs.add(
-            tab("Issue editor", new ItemStack(Items.writable_book), true, null).width(130), space());
-        for (View view : View.values()) {
+        int navigationWidth = width - (toggleItems == null ? 0 : 47);
+        if (settingsOpen() || session.saving()) {
+            tabs.add(tab(settingsOpen() ? "Workspace settings" : "Saving", new ItemStack(Items.book), true, null).width(Math.min(160, navigationWidth)));
+        } else if (session.draft() != null) {
+            tabs.add(tab("Issue editor", new ItemStack(Items.writable_book), true, null).width(Math.min(130, navigationWidth)));
+        } else for (View view : View.values()) {
             ItemStack icon = new ItemStack(view == View.BOARD ? Items.book : view == View.BACKLOG ? Items.map : Items.paper);
-            tabs.add(tab(view.label, icon, session.view() == view, () -> session.navigate(view)).width(Math.min(100, (width - 9) / 3)));
+            tabs.add(tab(view.label, icon, session.view() == view, () -> session.navigate(view)).width(Math.min(100, (navigationWidth - 9) / 3)));
         }
-        return tabs.add(space());
+        tabs.add(space());
+        if (toggleItems != null) tabs.add(button("Items", itemsVisible.getAsBoolean(), toggleItems).width(44)
+            .hint("Show or hide the NEI item picker", "Drag items into an issue's description or Materials"));
+        return tabs;
     }
 
     private Node header(int width, Ui ui) {

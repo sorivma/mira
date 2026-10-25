@@ -1,9 +1,11 @@
 # Foundation verification — 2026-10-25
 
-> Workspace UI revision: feature modules and session tests have been added after
-> the foundation evidence below. The refactored UI has not been compiled, tested,
-> or inspected in-game by the assistant. The user owns all verification under
-> `AGENTS.md`; commands and acceptance steps are in [the UI guide](ui.md).
+> Current backend/UI revision: world-file persistence, roles, real-time task sync,
+> workflow graphs/schemes, project/sprint/board administration and new domain,
+> persistence and synchronization tests were added after the foundation evidence
+> below. The assistant has not compiled, built, linted, run tests or inspected this
+> revision in-game. The user owns all verification under `AGENTS.md`; commands and
+> multiplayer/restart acceptance steps are in [the backend guide](backend.md).
 
 The initial runtime baseline is **plain Minecraft 1.7.10 + Forge 1614 + Mira
 only**, per the user's implementation direction. No Prism or desktop automation

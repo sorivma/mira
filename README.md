@@ -1,8 +1,9 @@
 # Mira
 
 Minecraft 1.7.10 / Forge foundation for collaborative tasks, workflows, and
-boards, targeting GT New Horizons **2.9.0-RC-2**. The first client UI slice
-provides a project workspace backed by disposable sample data. Full-pack
+boards, targeting GT New Horizons **2.9.0-RC-2**. Workspaces contain multiple
+projects, with server-owned roles, workflows and a database stored in the world.
+Saved changes synchronize immediately with connected players. Full-pack
 compatibility status is in [verification](docs/verification.md).
 
 ## Workspace UI
@@ -32,10 +33,21 @@ Descriptions and text blocks support Markdown source/preview, headings, formatte
 text, lists, quotes, links, code, tables, task lists and images. Formatting tools
 work on selected text. Templates speed up common tasks. Use Undo/**Ctrl+Z** for
 saved actions, and Pin for a HUD tracker. Cards show three title lines and progress.
-All changes are local to the running client session; they are **not saved or
-shared with other players**. The screen labels this explicitly as a demo.
-Inventory observations are read from your player on the Mira server; this does
-not synchronize task data. Plain Forge needs no extra runtime mod.
+Create a private workspace under **Settings > Workspaces**, then grant players
+Viewer or Editor access under **People & access**. The creator is its Owner; ownership
+can be transferred. Projects inherit workspace permissions. Settings also manage
+projects, sprints, custom issue types, workflow graphs and schemes, board columns,
+archives and activity. Owners configure workflows; Editors manage projects and
+tasks. Server operators have explicit audited recovery commands.
+
+Saved changes are persisted before acknowledgment and pushed to authorized players.
+Different task fields or description blocks merge independently; conflicting edits
+retain the local draft and offer **Keep my edits** or **Reload saved**. Comments
+append independently. Undo checks for later edits before reversing your own changes.
+Draft typing stays local. Tasks and projects are archived and can be restored.
+Inventory observations remain a separate read-only service. Plain Forge needs no
+extra runtime mod or external database. See the [backend guide](docs/backend.md)
+for storage, the synchronized API, workflow publication, recovery and verification.
 
 The [UI guide](docs/ui.md) explains the feature modules, fluent composition,
 controls, and manual acceptance steps. The user owns builds, automated tests,
@@ -96,8 +108,8 @@ modern-Java GTNH distribution is tested separately.
 ## Verification
 
 `check` verifies core isolation, final mod contents, and a separately compiled
-class-embedding fixture after reobfuscation. Production core contains the typed
-task-body model, matching rules, and inventory allocation. The independent
+class-embedding fixture after reobfuscation. Production core contains workspace/task
+rules, permissions, workflows, transactions, typed task bodies, matching and inventory allocation. The independent
 fixture also exercises embedding. [Architecture and ownership](docs/architecture.md)
 explain the seam.
 

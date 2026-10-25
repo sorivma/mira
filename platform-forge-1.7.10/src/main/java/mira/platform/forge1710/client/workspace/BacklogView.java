@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import mira.platform.forge1710.client.ui.Ui;
 import mira.platform.forge1710.client.ui.Ui.Node;
-import mira.platform.forge1710.client.workspace.DemoWorkspace.Issue;
+import mira.platform.forge1710.client.workspace.WorkspaceData.Issue;
 
 import static mira.platform.forge1710.client.ui.Ui.*;
 
@@ -22,7 +22,7 @@ final class BacklogView {
         }
         Node list = column(2).pad(6).inset().scroll(scroll);
         List<Issue> issues = session.issues();
-        for (String group : DemoWorkspace.SPRINTS) {
+        for (String group : session.sprints()) {
             List<Issue> groupIssues = issues.stream().filter(issue -> issue.sprint.equals(group)).collect(Collectors.toList());
             list.add(heading(group + " (" + groupIssues.size() + ")", 0xFF202020).height(22), rule());
             for (Issue issue : groupIssues) list.add(IssueWidgets.issueRow(issue, () -> session.select(issue)));

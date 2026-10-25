@@ -1,13 +1,13 @@
 # Workspace UI
 
-This is the first presentation slice for a Jira-like workspace. It uses the
-Minecraft font and native text editing, with a small fluent layout module and
-an embedded CommonMark parser in the platform. Projects and issues are disposable demo
-data for exercising the interface. Task sync, world persistence, configurable
-workflows, permissions, and sprint management are future domain work. The
-inventory observation channel reads real carried items; task records remain
-session-local. Legacy location/link labels are sample content; body location
-and blocker sections are interactive.
+The Jira-like workspace uses the Minecraft font and native text editing, a small
+fluent layout module and an embedded CommonMark parser. Its authoritative domain
+is in core, with world-local persistence and real-time server synchronization.
+Workspaces contain multiple projects and configurable Owner/Editor/Viewer roles.
+Saved task fields and description blocks merge independently; typing stays local.
+Settings provide membership, projects, sprints, custom issue types, workflow graph
+and scheme editing, board mappings, archives and activity. See [backend.md](backend.md)
+for the command/storage contracts and multiplayer acceptance procedure.
 
 ## Native visual design
 
@@ -75,6 +75,40 @@ with those fields expanded. Form actions and validation stay outside the scrolli
 body, and title changes clear the empty-title error. Create + next retains
 planning choices while resetting text and focusing the new title.
 
+## Workspace settings
+
+Settings keep the resource-pack inventory frame and Minecraft font. Lapis marks
+the selected section; pale stone highlights selectable records, moss signals a
+ready publication review, and redstone marks errors. Text labels always carry
+the meaning alongside color. At 510 scaled pixels of settings width, a persistent
+rail groups Workspace, Planning, Workflow and History. Smaller windows use a
+section picker and stack form controls. The rail and page scroll independently.
+Forms cap their reading width and keep name/column save actions below the scroll.
+
+New and Edit are separate states. New focuses the name; Cancel returns to the
+previous item. Project keys are only editable during creation. Save name and Save
+column indicate precisely what is being saved; workflow graph edits, mappings
+and publication have their own actions. Empty selectors are inactive controls.
+Owner-only pages explain access, while project and board settings remain readable
+to Viewers. Archived items must be restored before editing. Saving keeps the page
+visible and suspends its form interactions until the server replies. Settings
+conflicts expose Keep my edits and Reload saved without dropping the local form.
+
+People & access pairs player faces with roles, explains Viewer/Editor capabilities,
+and provides an inline ownership-transfer review. Sprints show completed/total
+issues and an explicit destination for unfinished work. Board columns show each
+status's current column before reassignment. Workflows have a graph at wider sizes,
+status/transition lists at every size, an anchored inspector, required-field
+toggles, and From/To controls that also work without dragging. Schemes present a
+default workflow plus issue-type exceptions. Publication lists replacement statuses
+for affected issues before applying the change. Archives have type/search filters;
+activity groups changes by date with search and author filtering.
+
+Escape cancels an ownership review or New form before leaving settings. Ctrl+F
+focuses search in Archives/Activity. Issue-creation and document shortcuts stay
+within the issue views. The normal field Tab traversal and choice-menu arrow keys
+remain available. UI animation is limited to existing native interaction feedback.
+
 ## Ownership
 
 All paths below are relative to
@@ -91,7 +125,14 @@ All paths below are relative to
 | `workspace/IssueDetailsView` | Issue presentation, inline text edits, comments, activity |
 | `workspace/IssueEditorView` | Form controls and editor scroll/focus |
 | `workspace/IssueWidgets` | Shared issue cards, rows, wrapped paragraphs |
-| `workspace/WorkspaceSession` | Navigation, filtering, selection, draft and demo actions |
+| `workspace/WorkspaceSession` | Navigation, filtering, selection and detached draft lifecycle |
+| `workspace/RemoteWorkspace` | Stable server projections, versioned mutations and conflict handling |
+| `workspace/JiraClient` | Client-thread snapshot delivery and acknowledgment/retry handling |
+| `workspace/WorkspaceData` | Detached presentation records; no authority or persistence |
+| `workspace/WorkspaceSettings` | Local administration forms and command construction |
+| `workspace/WorkspaceSettingsView` | Membership/project/sprint/workflow/scheme/board/archive views |
+| `workspace/WorkflowSettingsView` | Graph inspector, workflow assignments and publication review |
+| `workspace/SettingsLayout` | Shared settings sections, copy and responsive control composition |
 | `workspace/IssueDraft` | Detached create/edit values and validation message |
 | `workspace/DocumentDraft` | Detached ordered document, selection, insertion, paragraph splitting and reordering |
 | `workspace/DocumentView` | Continuous block composition, insertion gaps, drag handles and shared toolbar |
@@ -102,7 +143,7 @@ All paths below are relative to
 | `InventoryClient` | Periodic inventory requests and current/fallback observations |
 | `NeiBridge` | Optional NEI ghost item drops and input coordination |
 | `workspace/WorkspacePlayers` | Game roster options and inline assignee/Me controls |
-| `workspace/DemoWorkspace` | Sample records and queries; no real server data |
+| `workspace/DemoWorkspace` (test sources) | Disposable UI interaction fixtures |
 | `ui/Ui` | Layout, clipping, painting, hit testing, scroll and focus dispatch |
 | `ui/MinecraftSkin` | Minecraft texture slices, item rendering and vanilla tooltips |
 | `ui/ChoiceMenu` | Anchored selection menu, scrolling and arrow-key selection |
@@ -119,9 +160,12 @@ All paths below are relative to
 The session and draft classes use ordinary Java values and can be exercised
 without starting Minecraft. Feature views do not calculate mouse hitboxes or
 call OpenGL. The UI module knows nothing about projects, issues, or workflows.
-The body model and matching/allocation rules live in core; inventory collection
-and packets live in the platform `inventory/` package. The demo session is not
-an authoritative server task service.
+The domain, body model and matching/allocation rules live in core. Inventory
+collection/packets remain in the platform `inventory/` package; Jira transport and
+world-file storage are in the common `jira/` package. The client projection never
+owns task, permission or workflow rules. The shared `Ui.graph` primitive owns graph
+layout, arrows, clipping, selection and drag targets; feature views supply values
+and actions.
 
 ## Fluent composition
 
@@ -129,14 +173,20 @@ Views return a tree; the screen renders it. Rows and columns divide remaining
 space between children without explicit dimensions. Fixed sizes reserve space
 on their corresponding axis; padding and gaps belong to the parent.
 
+`Ui.stack` and `Node.fitHeight()` size composed form groups from their fixed-height
+children. Call `fitHeight()` after adding children. `Ui.labelled` keeps labels above
+controls; `navigation` and `choiceRow` distinguish destinations and records from
+command buttons. `actionButton` provides an inactive state without pointer targets.
+`Node.interactive(false)` suspends a subtree's form actions while retaining scrolling.
+
 ```java
 return column(7).add(
     heading("Planning"),
     row(6).height(33).add(
         IssueWidgets.property("Type",
-            select("Type", issue.type, DemoWorkspace.TYPES, session::changeType)),
+            select("Type", issue.type, session.types(), session::changeType)),
         IssueWidgets.property("Priority",
-            select("Priority", issue.priority, DemoWorkspace.PRIORITIES, session::changePriority))));
+            select("Priority", issue.priority, WorkspaceData.PRIORITIES, session::changePriority))));
 ```
 
 Keep scroll state on its owning view, not on the transient tree:
@@ -185,8 +235,8 @@ rendering/input behavior needed by the feature.
 - **Ctrl+F** focuses search. Search matches issue key, title, and description.
 - **C** opens creation when no text input is focused. **Ctrl+N** also opens it
   from search. An already-open draft is never replaced by these shortcuts.
-- **+** in a board column creates in that status. In compact mode, the + button
-  and New issue use the visible status. A fresh draft also takes concrete
+- **+** in a board column creates a task in its applicable workflow's initial
+  status. A fresh draft also takes concrete
   assignee/sprint filters as defaults. Resuming a draft preserves its values.
 - Project, assignee, sprint, and issue fields open choice menus. Use the mouse
   or Up/Down then Enter. Escape or clicking outside dismisses the menu.
@@ -211,13 +261,13 @@ rendering/input behavior needed by the feature.
 - Cancelling Edit discards that edit. Cancelling Create retains its draft for
   the next Create action in that project.
 - Navigation uses compact top tabs at every width. Narrow boards show one
-  status with tabs/counts; four columns appear when at least 480 scaled pixels
-  are available for the board. At a window width of 860 scaled pixels,
+  configurable column with tabs/counts; all columns appear when enough width
+  is available. At a window width of 860 scaled pixels,
   selecting an issue opens a side inspector with an Open action for expansion.
   Filters are hidden in the full issue view to free space for content.
 - **Ctrl+Enter** saves the document in issue details. In the full issue form it
   retains the form's Save / Create + next behavior.
-- Click the title for title editing, or any document text/widget to select and
+- Click the title to open the detached issue editor, or any document text/widget to select and
   edit that block. Assignee pickers and
   long choice lists have search; arrows and Enter still select an option.
 - **+** gaps insert Text, Checklist, Materials, Location or Blocked by anywhere,
@@ -240,9 +290,10 @@ rendering/input behavior needed by the feature.
   remain immediate/undoable; during editing they belong to the document draft.
 - Templates append sections and preserve existing body content. Choosing Blank
   does not delete sections. Create + next starts a fresh body.
-- **Undo / Ctrl+Z** reverses saved task edits, body actions, comments, and board
-  moves, up to 30 actions. It is disabled while a draft is open and does not
-  replace the text field's own editing behavior.
+- **Undo / Ctrl+Z** reverses your latest eligible saved task edit, body action,
+  comment or board move if its fields have not subsequently changed. It is
+  disabled while a draft is open and does not replace text-field Undo. The
+  server retains the original action and records the inverse in activity.
 - **Pin** shows a compact task HUD when no screen is open. J opens its details.
   Pins and the workspace reset when disconnecting.
 
@@ -441,3 +492,25 @@ For manual acceptance:
     During editing, Cancel must roll back those changes too. Direct checks in
     reading mode remain independently undoable. Navigate away, open the full
     issue form, switch projects or Undo during an edit and check draft cleanup.
+25. Open each settings section at wide and narrow GUI scales, with and without
+    NEI. Check the rail/picker, scroll edges, long names, field focus, name/column
+    save footer, and tooltips with a resource pack. Create and cancel a project;
+    try an invalid key, save a valid one, and rename it without changing its key.
+26. Repeat settings as Owner, Editor and Viewer. Give/update/remove access; review
+    and cancel an ownership transfer. Archive/restore items, including a workspace.
+    Search Archives and Activity, filter them, and exercise their empty states.
+27. Start/complete a sprint, select a destination for unfinished issues, and switch
+    projects while editing board columns. Check that saving status assignments
+    moves them between columns together. Try a nonnumeric column order.
+28. Select/edit workflow statuses and transitions through both graph and lists.
+    Add a transition with From/To, toggle required fields, choose a starting status,
+    duplicate a workflow, edit scheme mappings, and review replacement statuses
+    before publishing. Repeat at a narrow scale where the graph is replaced by lists.
+29. With two clients, edit the same project name and exercise both conflict actions.
+    Check that the local form survives a remote rename, saving keeps the page visible,
+    and permission loss clears unavailable editing state. Escape should leave a New
+    form before leaving settings; C, Ctrl+N and / must not act on hidden issue views.
+
+The added settings regression cases in `WorkspaceSynchronizationTest` cover creation
+versus editing, key validation, cancelled creation, concurrent renames, project-scoped
+column selection and duplicate workspace names. They have not been run by the assistant.

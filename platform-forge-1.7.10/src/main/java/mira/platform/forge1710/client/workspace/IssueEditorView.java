@@ -40,16 +40,16 @@ final class IssueEditorView {
         Node documentFlow = document.build(ui, width - 12), documentTools = document.toolbar(ui, width - 12);
         Node form = column(6).pad(2).scroll(scroll);
         form.add(row(4).height(20).add(text(draft.project.name + " / " + draft.status.label, MUTED),
-                select("Task template", draft.template, TaskTemplates.NAMES, value -> TaskTemplates.apply(draft, value)).width(90)),
+                select("Task template", draft.template, TaskTemplates.NAMES, value -> { TaskTemplates.apply(draft, value); session.draftType(draft.type); }).width(90)),
             IssueWidgets.property("Title (required)", Ui.field(title)),
             heading("Description"), documentFlow,
             IssueWidgets.property("Assignee", WorkspacePlayers.assignee(draft.assignee, session.self(), value -> draft.assignee = value)),
             button(moreFields ? "Fewer fields" : "More fields", () -> moreFields = !moreFields).width(92));
         if (moreFields) form.add(
             row(6).height(33).add(
-                IssueWidgets.property("Type", select("Type", draft.type, DemoWorkspace.TYPES, value -> draft.type = value)),
-                IssueWidgets.property("Priority", select("Priority", draft.priority, DemoWorkspace.PRIORITIES, value -> draft.priority = value))),
-            IssueWidgets.property("Sprint", select("Sprint", draft.sprint, DemoWorkspace.SPRINTS, value -> draft.sprint = value)));
+                IssueWidgets.property("Type", select("Type", draft.type, session.types(), session::draftType)),
+                IssueWidgets.property("Priority", select("Priority", draft.priority, WorkspaceData.PRIORITIES, value -> draft.priority = value))),
+            IssueWidgets.property("Sprint", select("Sprint", draft.sprint, session.planningSprints(), value -> draft.sprint = value)));
         Node actions = row(5).height(20).add(space(), button("Cancel", session::cancelEditor).width(50));
         if (draft.original == null) actions.add(button("Create + next", () -> save(ui, true)).width(87).hint("Create and keep adding", "Ctrl+Enter; reuses assignee, type, priority and sprint"));
         actions.add(button(draft.original == null ? "Create" : "Save", () -> save(ui, false)).width(60)

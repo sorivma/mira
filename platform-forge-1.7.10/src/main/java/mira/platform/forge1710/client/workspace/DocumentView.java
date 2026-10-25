@@ -2,6 +2,9 @@ package mira.platform.forge1710.client.workspace;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
+import mira.core.jira.Model;
 import mira.core.taskbody.MaterialsWidget;
 import mira.core.taskbody.MaterialsWidget.Material;
 import mira.core.taskbody.TaskBody;
@@ -56,8 +59,10 @@ final class DocumentView {
         }
         focusPending = document != null && focusRevision != document.focusRevision();
         if (document != null) focusRevision = document.focusRevision();
+        WorkspaceData.Issue observedIssue = session.selected();
+        List<Model.Entity> observedBlocks = observedIssue == null ? new ArrayList<>() : new ArrayList<>(observedIssue.blocks);
         WidgetContext reading = new WidgetContext(body, false, InventoryClient.snapshot(), font, ui, Math.max(1, width - 20),
-            readingInputs, action -> { if (document == null) session.mutateBody(action); else action.run(); }, session::openIssue, session::issueDone);
+            readingInputs, action -> { if (document == null) session.mutateBody(observedIssue, body, observedBlocks, action); else action.run(); }, session::openIssue, session::issueDone);
         selectedContext = selected == null ? null : new WidgetContext(body, true, reading.inventory, font, ui,
             Math.max(1, width - 20), selectedInputs, Runnable::run, session::openIssue, session::issueDone);
         if (selectedContext != null) { selectedContext.sharedTextTools = true; selectedContext.nextParagraph = () -> paragraph(ui); }
@@ -93,6 +98,7 @@ final class DocumentView {
         return flow.height(height).dropTarget(ItemStack.class, stack -> addMaterial(ui, stack));
     }
     Ui.Node toolbar(Ui ui, int width) {
+        if (!session.writable()) return heading("Description").height(20);
         DocumentDraft document = draft();
         if (document == null) return row(4).height(20).add(heading("Description"),
             text("Edit", ACCENT).width(28).click(() -> editFirst(ui)).hint("Edit the document", "Click any text or widget; / inserts a block"));

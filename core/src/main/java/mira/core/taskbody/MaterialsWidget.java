@@ -32,7 +32,7 @@ public final class MaterialsWidget extends TaskWidget {
     }
     public final List<Material> materials = new ArrayList<>();
     public MaterialsWidget() { super("Materials"); }
-    private MaterialsWidget(String id, String title) { super(id, title); }
+    public MaterialsWidget(String id, String title) { super(id, title); }
     @Override public MaterialsWidget copy() {
         MaterialsWidget result = new MaterialsWidget(id, title);
         for (Material material : materials) result.materials.add(material.copy());

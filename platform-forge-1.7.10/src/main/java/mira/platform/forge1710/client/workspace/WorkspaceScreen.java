@@ -33,7 +33,7 @@ public final class WorkspaceScreen extends GuiContainer {
         // Empty client-only container: normal player inventory remains the server's active window.
         if (mc.thePlayer != null) mc.thePlayer.openContainer = mc.thePlayer.inventoryContainer;
         ui = new Ui(mc, fontRendererObj);
-        if (session == null) session = new WorkspaceSession(new DemoWorkspace(), mc.thePlayer == null ? "You" : mc.thePlayer.getCommandSenderName());
+        if (session == null) session = new WorkspaceSession(new WorkspaceData(), mc.thePlayer == null ? "You" : mc.thePlayer.getCommandSenderName(), JiraClient.backend());
         if (shell == null) shell = new WorkspaceShell(session, fontRendererObj, () -> mc.displayGuiScreen(null));
         if (!keyboardActive) repeatEvents = Keyboard.areRepeatEventsEnabled();
         keyboardActive = true;
@@ -93,7 +93,7 @@ public final class WorkspaceScreen extends GuiContainer {
         if (ui.handleMenuKey(character, key)) return;
         if (key == Keyboard.KEY_ESCAPE) {
             ui.blur();
-            if (!session.back()) mc.displayGuiScreen(null);
+            if (!shell.back()) mc.displayGuiScreen(null);
         } else if (isCtrlKeyDown() && key == Keyboard.KEY_F) {
             shell.focusSearch(ui);
         } else if (isCtrlKeyDown() && key == Keyboard.KEY_Z && !ui.typing()) {

@@ -3,7 +3,7 @@ package mira.platform.forge1710.client.workspace;
 import java.util.List;
 import mira.platform.forge1710.client.ui.Ui;
 import mira.platform.forge1710.client.ui.Ui.Node;
-import mira.platform.forge1710.client.workspace.DemoWorkspace.Issue;
+import mira.platform.forge1710.client.workspace.WorkspaceData.Issue;
 
 import static mira.platform.forge1710.client.ui.Ui.*;
 

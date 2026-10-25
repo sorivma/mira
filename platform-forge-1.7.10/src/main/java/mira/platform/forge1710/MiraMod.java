@@ -17,6 +17,17 @@ public final class MiraMod {
     public void preInitialize(FMLPreInitializationEvent event) {
         event.getModLog().info("Mira initialized");
         mira.platform.forge1710.inventory.InventoryNetwork.initialize();
+        mira.platform.forge1710.jira.JiraNetwork.initialize();
         proxy.initialize();
+    }
+
+    @Mod.EventHandler
+    public void serverStarting(cpw.mods.fml.common.event.FMLServerStartingEvent event) {
+        event.registerServerCommand(new mira.platform.forge1710.jira.MiraAdminCommand());
+    }
+
+    @Mod.EventHandler
+    public void serverStopped(cpw.mods.fml.common.event.FMLServerStoppedEvent event) {
+        mira.platform.forge1710.jira.JiraNetwork.stop();
     }
 }

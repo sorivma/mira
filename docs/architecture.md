@@ -5,8 +5,8 @@ platform-forge-1.7.10  --->  core  --->  JDK
 Forge / Minecraft             no game classpath
 ```
 
-`core` owns task-body rules and values under `mira.core.taskbody`, with future
-task, workflow, and board rules under `mira.core`.
+`core` owns task-body rules and values under `mira.core.taskbody`, and the workspace,
+task, role, sprint, board and workflow domain under `mira.core.jira`.
 It is an ordinary Java library, compiled with `--release 8`. Its production
 compile and runtime classpaths are JDK-only. Build tooling and test dependencies
 are outside that restriction. The ordered `TaskBody` contains independently
@@ -19,18 +19,38 @@ conversion between Minecraft objects and core values. The mod id is `mira`;
 the display name is **Mira**. Client rendering and GUI code live in
 `mira.platform.forge1710.client`, reached through a sided proxy.
 `CommonProxy` does not reference client classes. `MiraClient` registers the
-workspace keybinding; it opens the demo workspace. No gameplay blocks, items,
-or world data are registered. `InventoryNetwork` registers a request/reply
+workspace keybinding and applies Jira replies on the client tick thread. No gameplay
+blocks or items are registered. `InventoryNetwork` registers a request/reply
 channel: only the sending player's carried inventory is observed, on the server
 tick thread, at a throttled rate. Replies contain registry identity, metadata,
 tag fingerprints, ore groups, counts, and availability warnings, without raw
-item NBT. No task state is sent or persisted.
+item NBT. Task state uses the independent `jira/JiraNetwork` channel.
+
+`JiraDatabase` is a synchronized, JDK-only transaction API. It owns detached database
+snapshots, field revisions, workspace-wide permissions, immutable published workflow
+generations, issue numbering, activity and conflict-aware Undo. Transactions check
+the sender's current role, compare only the fields they write (plus explicit read
+guards), apply domain rules, and call a persistence seam before publishing state.
+The platform supplies the player's server UUID; client identity is never trusted.
+See [backend.md](backend.md) for the entity schema and command contracts.
+
+`jira/WorldDatabase` stores a versioned, checksummed database at
+`<overworld>/data/mira-workspaces.dat`, shared by all dimensions. Each commit writes
+and syncs a temporary file, preserves the preceding database as `.bak`, then replaces
+the main file. Corruption fails closed and requires explicit recovery. The common
+Forge adapter queues bounded packet fragments for server-thread processing. It pushes
+permission-filtered snapshots after commits, including when membership is revoked.
+The client applies snapshots and acknowledgment callbacks on its own tick thread.
 
 The workspace screen is a thin lifecycle/input adapter. Feature views compose
 the shared UI module, while `WorkspaceSession` owns navigation, filters, draft
-handling, and demo actions without importing Minecraft. `IssueDraft` keeps edit
-values separate from issues until saved. `DemoWorkspace` is disposable
-presentation data, not the authoritative domain or persistence layer. See the
+handling without importing Minecraft. `RemoteWorkspace` translates server snapshots
+into stable `WorkspaceData` presentation objects and builds field/block patches.
+`IssueDraft` keeps edit values and their original versions separate until saved;
+remote updates cannot silently rebase a draft over concurrent edits. `WorkspaceSettings`
+owns administration form actions, and its view composes shared controls. `Ui.graph`
+owns graph layout, painting, hit testing and drag forwarding. `DemoWorkspace` now lives
+only in platform test sources. See the
 [UI guide](ui.md) for ownership and extension points.
 
 Body rendering is registered in the client `WidgetCatalog` by model class.

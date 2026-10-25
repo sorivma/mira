@@ -11,7 +11,7 @@ public final class ChecklistWidget extends TaskWidget {
     }
     public final List<Step> steps = new ArrayList<>();
     public ChecklistWidget() { super("Checklist"); }
-    private ChecklistWidget(String id, String title) { super(id, title); }
+    public ChecklistWidget(String id, String title) { super(id, title); }
     @Override public ChecklistWidget copy() {
         ChecklistWidget result = new ChecklistWidget(id, title);
         for (Step step : steps) { Step value = new Step(step.text); value.checked = step.checked; result.steps.add(value); }

@@ -3,6 +3,7 @@ package mira.platform.forge1710.client.ui;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import net.minecraft.client.Minecraft;
@@ -23,6 +24,7 @@ public final class Ui {
     public static final int TEXT = 0xFF404040, MUTED = 0xFF505050, PANEL = 0xFFC6C6C6;
     public static final int EDGE = 0xFF373737, ACCENT = 0xFF305A8A;
     public static final int ERROR = 0xFF9F2828;
+    public static final int SUCCESS = 0xFF387432, PAPER = 0xFFDEDEDE;
     private final Minecraft minecraft;
     private final FontRenderer font;
     private final MinecraftSkin skin;
@@ -38,6 +40,7 @@ public final class Ui {
     private ScrollDrag dragging;
     private final DragAndDrop cardDrag = new DragAndDrop();
     private boolean paintingPreview;
+    private boolean paintInteractive = true;
     private TextInput pendingFocus;
     private String pendingAnchor;
 
@@ -49,6 +52,102 @@ public final class Ui {
 
     public static Node row(int gap) { return new Node(true, gap); }
     public static Node column(int gap) { return new Node(false, gap); }
+    /** A content-sized group for forms inside a scrolling column. */
+    public static Node stack(int gap, Node... children) { return column(gap).add(children).fitHeight(); }
+    public static Node labelled(String label, Node control) { return stack(3, text(label, MUTED), control); }
+
+    /** Quiet, left-aligned navigation, distinct from a command button. */
+    public static Node navigation(String label, boolean selected, Runnable action) {
+        return new Node(false, 0).height(23).click(action).hint(label).paint((ui, box) -> {
+            if (selected || ui.hover(box)) Gui.drawRect(box.x, box.y, box.x + box.w, box.y + box.h,
+                selected ? PAPER : 0x33FFFFFF);
+            if (selected) Gui.drawRect(box.x, box.y + 3, box.x + 3, box.y + box.h - 3, ACCENT);
+            ui.font.drawString(ui.fit((selected ? EnumChatFormatting.BOLD : "") + label, box.w - 14),
+                box.x + 8, box.y + (box.h - 8) / 2, selected ? ACCENT : TEXT);
+        });
+    }
+
+    /** A selectable two-line record. Its state is also expressed in text. */
+    public static Node choiceRow(String title, String detail, boolean selected, Runnable action) {
+        return new Node(false, 0).height(34).click(action).hint(title, detail).paint((ui, box) -> {
+            if (selected || ui.hover(box)) Gui.drawRect(box.x, box.y, box.x + box.w, box.y + box.h,
+                selected ? PAPER : 0x33FFFFFF);
+            if (selected) Gui.drawRect(box.x, box.y + 4, box.x + 3, box.y + box.h - 4, ACCENT);
+            ui.font.drawString(ui.fit(title, box.w - 16), box.x + 8, box.y + 5, selected ? ACCENT : TEXT);
+            ui.font.drawString(ui.fit(detail, box.w - 16), box.x + 8, box.y + 19, MUTED);
+        });
+    }
+
+    public static Node actionButton(String label, boolean enabled, boolean primary, Runnable action) {
+        return new Node(false, 0).height(22).click(enabled ? action : null).hint(label).paint((ui, box) -> {
+            boolean hovered = enabled && ui.hover(box);
+            ui.skin.button(box.x, box.y, box.w, box.h, hovered, !enabled);
+            if (primary && enabled) Gui.drawRect(box.x + 2, box.y + 3, box.x + 4, box.y + box.h - 3, 0xFF91B9E0);
+            String value = ui.fit(label, box.w - 12);
+            ui.font.drawStringWithShadow(value, box.x + (box.w - ui.font.getStringWidth(value)) / 2,
+                box.y + (box.h - 8) / 2, !enabled ? 0xA0A0A0 : hovered ? 0xFFFFA0 : 0xE0E0E0);
+        });
+    }
+    public static Node canvas() { Node n = new Node(false, 0); n.absolute = true; return n; }
+    public static final class GraphPoint {
+        public final String id, label; public final int x, y, color; public final boolean selected;
+        public GraphPoint(String id, String label, int x, int y, int color, boolean selected) {
+            this.id = id; this.label = label; this.x = x; this.y = y; this.color = color; this.selected = selected;
+        }
+    }
+    public static final class GraphLink {
+        public final String id, from, to;
+        public GraphLink(String id, String from, String to) { this.id = id; this.from = from; this.to = to; }
+    }
+    /** Shared graph layout, arrows, hit targets and drag handling; feature views supply only values/actions. */
+    public static Node graph(int width, int height, List<GraphPoint> points, List<GraphLink> links,
+            Consumer<String> select, java.util.function.BiConsumer<String, String> connect,
+            java.util.function.BiConsumer<String, int[]> move) {
+        Node result = canvas().width(width).height(height).inset();
+        int extentX = 500, extentY = 220;
+        for (GraphPoint p : points) { extentX = Math.max(extentX, p.x + 130); extentY = Math.max(extentY, p.y + 50); }
+        final double sx = Math.max(0.01, (width - 12.0) / extentX), sy = Math.max(0.01, (height - 12.0) / extentY);
+        int nodeWidth = Math.max(32, Math.min(110, (int) (125 * sx))), nodeHeight = 26;
+        Map<String, int[]> positions = new java.util.HashMap<>();
+        for (GraphPoint p : points) positions.put(p.id, new int[] {Math.max(5, Math.min(width - nodeWidth - 5, (int) (p.x * sx) + 5)), Math.max(5, Math.min(height - nodeHeight - 5, (int) (p.y * sy) + 5))});
+        Node arrows = column(0).width(width).height(height).paint((ui, box) -> {
+            for (GraphLink link : links) {
+                int[] from = positions.get(link.from), to = positions.get(link.to); if (from == null || to == null) continue;
+                int x1 = box.x + from[0] + nodeWidth, y1 = box.y + from[1] + nodeHeight / 2;
+                int x2 = box.x + to[0], y2 = box.y + to[1] + nodeHeight / 2;
+                if (link.from.equals(link.to)) { int top = y1 - 24; graphLine(x1, y1, x1 + 9, top, MUTED); graphLine(x1 + 9, top, x2 - 8, top, MUTED); graphLine(x2 - 8, top, x2, y2, MUTED); }
+                else graphLine(x1, y1, x2, y2, ACCENT);
+                graphLine(x2 - 5, y2 - 3, x2, y2, ACCENT); graphLine(x2 - 5, y2 + 3, x2, y2, ACCENT);
+            }
+        });
+        result.add(arrows);
+        if (move != null) for (int x = 0; x < width; x += 40) for (int y = 0; y < height; y += 32) {
+            final int gx = (int) (x / sx), gy = (int) (y / sy);
+            result.add(column(0).width(Math.min(40, width - x)).height(Math.min(32, height - y)).at(x, y)
+                .dropTarget(GraphPoint.class, p -> move.accept(p.id, new int[] {gx, gy})));
+        }
+        for (GraphLink link : links) {
+            int[] from = positions.get(link.from), to = positions.get(link.to); if (from == null || to == null) continue;
+            result.add(text(">", ACCENT).width(14).height(14).at((from[0] + nodeWidth + to[0]) / 2, (from[1] + to[1]) / 2 + 5)
+                .click(() -> select.accept(link.id)).hint("Select transition"));
+        }
+        for (GraphPoint p : points) {
+            int[] position = positions.get(p.id);
+            Node node = button(p.label, p.selected, () -> select.accept(p.id)).width(nodeWidth).height(nodeHeight).at(position[0], position[1]).hint(p.label);
+            Painter buttonPaint = node.painter;
+            node.paint((ui, box) -> {
+                buttonPaint.paint(ui, box);
+                Gui.drawRect(box.x + 3, box.y + box.h - 4, box.x + box.w - 3, box.y + box.h - 2, p.color);
+            });
+            if (connect != null) node.draggable(p).dropTarget(GraphPoint.class, source -> connect.accept(source.id, p.id));
+            result.add(node);
+        }
+        return result;
+    }
+    private static void graphLine(int x1, int y1, int x2, int y2, int color) {
+        int steps = Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1));
+        for (int i = 0; i <= steps; i++) { int x = steps == 0 ? x1 : x1 + (x2 - x1) * i / steps; int y = steps == 0 ? y1 : y1 + (y2 - y1) * i / steps; Gui.drawRect(x, y, x + 1, y + 1, color); }
+    }
     public static Node space() { return column(0); }
     public static Node text(String text) { return text(text, TEXT); }
     public static Node heading(String label) { return text(EnumChatFormatting.BOLD + label); }
@@ -123,7 +222,7 @@ public final class Ui {
                     Gui.drawRect(x, y - 1, x + run.width, y + 10, 0x22373737);
                 ui.font.drawString(run.span.formatted(run.text), x, y,
                     run.span.link == null ? run.span.color : ACCENT);
-                if (run.span.link != null && !ui.paintingPreview) {
+                if (run.span.link != null && !ui.paintingPreview && ui.paintInteractive) {
                     Box target = new Box(x, y, run.width, RichText.LINE_HEIGHT).intersect(ui.paintClip);
                     ui.hits.add(new Hit(target, () -> {
                         if (run.span.link.startsWith("#")) {
@@ -187,7 +286,7 @@ public final class Ui {
         return selection(label, value, choices, choose, true);
     }
     private static Node selection(String label, String value, String[] choices, Consumer<String> choose, boolean players) {
-        if (choices.length == 0) throw new IllegalArgumentException("A choice needs at least one option");
+        if (choices.length == 0) return actionButton(value.isEmpty() ? "No options available" : value, false, false, null).height(20).hint(label, "No options available");
         Node node = new Node(false, 0).height(20);
         node.choice = new ChoiceMenu(label, value, choices, choose, players);
         node.painter = (ui, box) -> {
@@ -374,6 +473,10 @@ public final class Ui {
     /** Resolve focused inputs/heading anchors before clipping, including targets below the viewport. */
     private Box reveal(Node node, Box box, TextInput field, String anchor) {
         if ((field != null && node.field == field) || (anchor != null && anchor.equals(node.anchor))) return box;
+        if (node.absolute) {
+            for (Node child : node.children) { Box found = reveal(child, new Box(box.x + child.left, box.y + child.top, child.width < 0 ? box.w : child.width, child.height < 0 ? box.h : child.height), field, anchor); if (found != null) return found; }
+            return null;
+        }
         Box inner = box.inset(node.padding);
         if (node.scroll != null) inner = new Box(inner.x, inner.y, inner.w - 8, inner.h);
         int available = node.horizontal ? inner.w : inner.h;
@@ -410,14 +513,16 @@ public final class Ui {
         return null;
     }
 
-    private void render(Node node, Box box, Box inheritedClip) { render(node, box, inheritedClip, false); }
-    private void render(Node node, Box box, Box inheritedClip, boolean parentHovered) {
+    private void render(Node node, Box box, Box inheritedClip) { render(node, box, inheritedClip, false, true); }
+    private void render(Node node, Box box, Box inheritedClip, boolean parentHovered, boolean enabled) {
+        enabled = enabled && node.interactive;
         Box clip = box.intersect(inheritedClip);
         if (clip.w <= 0 || clip.h <= 0) return;
         if (node.revealOnParentHover && !parentHovered && !cardDrag.active()) return;
         boolean scopeHovered = node.hoverScope ? node.selectedScope || clip.contains(mouseX, mouseY) : parentHovered;
         scissor(clip);
         paintClip = clip;
+        paintInteractive = enabled;
         if (node.background != 0) Gui.drawRect(box.x, box.y, box.x + box.w, box.y + box.h, node.background);
         if (node.surface != null) skin.surface(node.surface, box.x, box.y, box.w, box.h);
         if (node.action != null && node.choice == null && node.surface != null && clip.contains(mouseX, mouseY))
@@ -425,21 +530,26 @@ public final class Ui {
         else if (node.action != null && node.painter == null && clip.contains(mouseX, mouseY))
             Gui.drawRect(box.x, box.y, box.x + box.w, box.y + box.h, 0x33FFFFFF);
         if (!paintingPreview && node.hint != null && clip.contains(mouseX, mouseY)) tooltip = node.hint;
-        boolean dropHover = !paintingPreview && node.drop != null
+        boolean dropHover = enabled && !paintingPreview && node.drop != null
             && cardDrag.target(clip, node.drop.accepts, node.drop.action);
-        if (!paintingPreview && node.choice != null) hits.add(new Hit(clip, () -> {
+        if (enabled && !paintingPreview && node.choice != null) hits.add(new Hit(clip, () -> {
             menu = node.choice;
             ScaledResolution resolution = new ScaledResolution(minecraft, minecraft.displayWidth, minecraft.displayHeight);
             menu.place(box.x, box.y, box.w, box.h, resolution.getScaledWidth(), resolution.getScaledHeight());
         }));
-        if (!paintingPreview && node.dragPayload != null) {
+        if (enabled && !paintingPreview && node.dragPayload != null) {
             hits.add(new Hit(clip, () -> cardDrag.press(node, node.dragPayload, box, clip, mouseX, mouseY, node.action), false));
-        } else if (!paintingPreview && node.action != null) hits.add(new Hit(clip, node.action));
-        if (!paintingPreview && node.field != null) {
+        } else if (enabled && !paintingPreview && node.action != null) hits.add(new Hit(clip, node.action));
+        if (enabled && !paintingPreview && node.field != null) {
             fields.add(node.field);
             hits.add(new Hit(clip, () -> node.field.click(mouseX, mouseY), false));
         }
         if (node.painter != null) node.painter.paint(this, box);
+        if (node.absolute) {
+            for (Node child : node.children) render(child, new Box(box.x + child.left, box.y + child.top,
+                child.width < 0 ? box.w : child.width, child.height < 0 ? box.h : child.height), clip, scopeHovered, enabled);
+            return;
+        }
         Box inner = box.inset(node.padding);
         if (node.scroll != null) inner = new Box(inner.x, inner.y, inner.w - 8, inner.h);
         int available = node.horizontal ? inner.w : inner.h;
@@ -457,7 +567,7 @@ public final class Ui {
             cursor -= node.scroll.offset;
             if (!paintingPreview) {
                 scrolls.add(new ScrollHit(box.inset(node.padding).intersect(clip), node.scroll));
-                cardDrag.panZone(node.scroll, inner.intersect(clip));
+                if (enabled) cardDrag.panZone(node.scroll, inner.intersect(clip));
             }
         }
         Box childClip = inner.intersect(clip);
@@ -468,7 +578,7 @@ public final class Ui {
             Box childBox = node.horizontal
                 ? new Box(cursor, inner.y, size, child.height < 0 ? inner.h : child.height)
                 : new Box(inner.x, cursor, child.width < 0 ? inner.w : child.width, size);
-            render(child, childBox, childClip, scopeHovered);
+            render(child, childBox, childClip, scopeHovered, enabled);
             cursor += size + node.gap;
         }
         if (node.scroll != null && node.scroll.max > 0 && inner.h > 0) {
@@ -506,7 +616,7 @@ public final class Ui {
             Math.max(0, box.w * scaleFactor), Math.max(0, box.h * scaleFactor));
     }
 
-    private boolean hover(Box box) { return box.contains(mouseX, mouseY) && paintClip.contains(mouseX, mouseY); }
+    private boolean hover(Box box) { return paintInteractive && box.contains(mouseX, mouseY) && paintClip.contains(mouseX, mouseY); }
     private String fit(String text, int width) {
         if (width <= 0) return "";
         return font.getStringWidth(text) <= width ? text : font.trimStringToWidth(text, Math.max(0, width - font.getStringWidth("..."))) + "...";
@@ -528,6 +638,8 @@ public final class Ui {
         private final boolean horizontal;
         private final int gap;
         private int width = -1, height = -1, padding, background;
+        private int left, top;
+        private boolean absolute, interactive = true;
         private Painter painter;
         private Runnable action;
         private Scroll scroll;
@@ -543,7 +655,19 @@ public final class Ui {
         private Node(boolean horizontal, int gap) { this.horizontal = horizontal; this.gap = gap; }
         public Node width(int value) { width = value; return this; }
         public Node height(int value) { height = value; return this; }
+        public Node interactive(boolean value) { interactive = value; return this; }
+        public Node at(int x, int y) { left = x; top = y; return this; }
         public int preferredHeight() { return height; }
+        /** Call after composing children; layout calculations remain in the shared UI module. */
+        public Node fitHeight() {
+            int size = horizontal ? 0 : Math.max(0, children.size() - 1) * gap;
+            for (Node child : children) {
+                int childHeight = Math.max(0, child.height);
+                size = horizontal ? Math.max(size, childHeight) : size + childHeight;
+            }
+            height = padding * 2 + size;
+            return this;
+        }
         public Node pad(int value) { padding = value; return this; }
         public Node background(int color) { background = color; return this; }
         public Node panel() { surface = MinecraftSkin.Surface.PANEL; return this; }

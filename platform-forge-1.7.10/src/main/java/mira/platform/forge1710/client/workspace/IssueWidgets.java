@@ -2,7 +2,7 @@ package mira.platform.forge1710.client.workspace;
 
 import mira.platform.forge1710.client.ui.Ui;
 import mira.platform.forge1710.client.ui.Ui.Node;
-import mira.platform.forge1710.client.workspace.DemoWorkspace.Issue;
+import mira.platform.forge1710.client.workspace.WorkspaceData.Issue;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;

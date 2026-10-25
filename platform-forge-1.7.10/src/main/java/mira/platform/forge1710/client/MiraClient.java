@@ -14,6 +14,7 @@ import cpw.mods.fml.common.gameevent.TickEvent;
 import cpw.mods.fml.common.network.FMLNetworkEvent;
 import net.minecraftforge.common.MinecraftForge;
 import mira.platform.forge1710.client.workspace.PinnedTaskHud;
+import mira.platform.forge1710.client.workspace.JiraClient;
 
 /** The only lifecycle path that resolves Minecraft client classes. */
 public final class MiraClient extends CommonProxy {
@@ -38,9 +39,10 @@ public final class MiraClient extends CommonProxy {
         }
     }
     @SubscribeEvent public void tick(TickEvent.ClientTickEvent event) {
-        if (event.phase == TickEvent.Phase.END && PinnedTaskHud.active()) InventoryClient.update();
+        if (event.phase == TickEvent.Phase.END) { JiraClient.update(); if (PinnedTaskHud.active()) InventoryClient.update(); }
     }
+    @Override public void receiveJira(Object connection, byte[] reply) { JiraClient.receive(connection, reply); }
     @SubscribeEvent public void disconnected(FMLNetworkEvent.ClientDisconnectionFromServerEvent event) {
-        InventoryClient.reset(); PinnedTaskHud.clear(); workspace = null;
+        InventoryClient.reset(); JiraClient.reset(); PinnedTaskHud.clear(); workspace = null;
     }
 }

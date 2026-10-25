@@ -25,7 +25,7 @@ dependencies {
     compileOnly(project(":platform-forge-1.7.10")) { isTransitive = false }
     compileOnly(harnessApi)
     testImplementation(harnessApi)
-    testImplementation("com.google.code.gson:gson:2.2.4")
+    testImplementation("com.google.code.gson:gson:2.14.0")
     testImplementation("junit:junit:4.13.2")
 }
 tasks.withType<JavaCompile>().configureEach { options.encoding = "UTF-8" }

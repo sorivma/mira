@@ -11,6 +11,29 @@ plugins {
 java {
     toolchain { languageVersion.set(JavaLanguageVersion.of(8)) }
 }
+
+val generatedVersionDirectory = layout.buildDirectory.dir("generated/sources/miraVersion")
+val generateBuildVersion by tasks.registering {
+    inputs.property("version", project.version)
+    outputs.dir(generatedVersionDirectory)
+    doLast {
+        val releaseVersion = project.version.toString()
+        require(Regex("[0-9A-Za-z.+-]+").matches(releaseVersion)) { "Unsafe Java version literal" }
+        val output = generatedVersionDirectory.get().file("mira/platform/forge1710/BuildVersion.java").asFile
+        output.parentFile.mkdirs()
+        output.writeText("""
+            package mira.platform.forge1710;
+
+            /** Generated from Gradle's project version; never edit this file. */
+            public final class BuildVersion {
+                public static final String VERSION = "$releaseVersion";
+                private BuildVersion() {}
+            }
+        """.trimIndent() + "\n")
+    }
+}
+sourceSets.main { java.srcDir(generateBuildVersion) }
+
 minecraft {
     mcVersion.set("1.7.10") // RFG 2.0.6 pins Forge 10.13.4.1614 for this version.
     mcpMappingChannel.set("stable")

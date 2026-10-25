@@ -5,6 +5,11 @@ The single source of truth is `version` in `gradle.properties`.
 All Mira modules share that version; Git tags are `vMAJOR.MINOR.PATCH`.
 The first published release is **0.1.0**.
 
+The platform generates a compile-time `BuildVersion.VERSION` from the Gradle
+version. All three `@Mod` annotations use that constant; resource metadata uses
+the same Gradle value. Release packaging inspects the final annotation bytecode
+and `mcmod.info` so a hardcoded or stale version cannot silently ship.
+
 ## Compatibility contract
 
 During `0.x`, a minor release may change Java APIs, MCP schemas, saved data,

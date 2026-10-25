@@ -5,7 +5,7 @@ import cpw.mods.fml.common.SidedProxy;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 
 /** Common bootstrap; keep client-only types out of this loading path. */
-@Mod(modid = MiraMod.MOD_ID, name = "Mira", version = "0.1.0", acceptedMinecraftVersions = "[1.7.10]", dependencies = "after:NotEnoughItems")
+@Mod(modid = MiraMod.MOD_ID, name = "Mira", version = BuildVersion.VERSION, acceptedMinecraftVersions = "[1.7.10]", dependencies = "after:NotEnoughItems")
 public final class MiraMod {
     public static final String MOD_ID = "mira";
 

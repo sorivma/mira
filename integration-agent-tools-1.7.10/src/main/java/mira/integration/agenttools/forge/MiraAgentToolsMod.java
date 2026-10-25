@@ -4,8 +4,9 @@ import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.SidedProxy;
 import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
+import mira.platform.forge1710.BuildVersion;
 
-@Mod(modid = "minecraftagenttoolsmira", name = "Mira Agent Tools", version = "0.1.0",
+@Mod(modid = "minecraftagenttoolsmira", name = "Mira Agent Tools", version = BuildVersion.VERSION,
     acceptableRemoteVersions = "*", dependencies = "required-after:mira;before:minecraftagenttoolsmcp")
 public final class MiraAgentToolsMod {
     @SidedProxy(clientSide = "mira.integration.agenttools.forge.client.ClientProxy",

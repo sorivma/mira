@@ -2,9 +2,11 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import shutil
+import subprocess
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,6 +30,12 @@ artifacts = {
     f"mira-harness-1.7.10-{version}-dev.jar": "integration-harness-1.7.10",
     f"core-{version}.jar": "core",
 }
+bootstraps = {
+    "platform-forge-1.7.10": "mira.platform.forge1710.MiraMod",
+    "integration-agent-tools-1.7.10": "mira.integration.agenttools.forge.MiraAgentToolsMod",
+    "integration-harness-1.7.10": "mira.integration.harness.MiraHarnessMod",
+}
+javap = str(Path(os.environ["JAVA_HOME"]) / "bin" / "javap") if os.environ.get("JAVA_HOME") else "javap"
 for name, module in artifacts.items():
     path = ROOT / module / "build" / "libs" / name
     if not path.is_file():
@@ -41,6 +49,13 @@ for name, module in artifacts.items():
             metadata = json.loads(jar.read("mcmod.info"))
             if metadata[0]["version"] != version:
                 raise SystemExit(f"Wrong embedded version: {name}")
+    if module in bootstraps:
+        bytecode = subprocess.check_output([javap, "-J-Duser.language=en", "-v", "-classpath", str(path), bootstraps[module]],
+                                           text=True, encoding="utf-8", errors="replace")
+        annotation = re.search(r"cpw\.mods\.fml\.common\.Mod\(\s*(.*?)\n\s*\)", bytecode, re.DOTALL)
+        annotation_version = re.search(r'^\s*version="([^"]+)"\s*$', annotation.group(1), re.MULTILINE) if annotation else None
+        if not annotation_version or annotation_version.group(1) != version:
+            raise SystemExit(f"Wrong compiled @Mod version: {name}")
 
 dest = ROOT / "build" / "release"
 dest.mkdir(parents=True, exist_ok=True)

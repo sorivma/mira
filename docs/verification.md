@@ -20,6 +20,10 @@ python scripts/package-release.py --tag v0.1.0
   allowed-test-dependency and final clean core checks passed.
 - The release packager validated seven jars and produced a distribution ZIP,
   notices, installation instructions, and SHA-256 manifest.
+- A separate build with `'-Pversion=0.1.1-verify'` passed checks and produced
+  matching `@Mod` annotation bytecode and `mcmod.info` in all six mod/dev jars.
+  The final 0.1.0 build and packaging then passed again. This exercises version
+  propagation, not merely the currently matching default value.
 - The Markdown image regression tests cover consent before network scheduling
   and rejection of insecure/file URL schemes.
 - GitHub Build runs separate core controls plus standalone and integration builds.
